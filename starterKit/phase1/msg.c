@@ -24,8 +24,6 @@ msg_t *allocMsg() {
         return tmp;
     }
 }
-#include "PandOS_types.h"
-#include "listx.h"
 
 // Inizializza una variabile come puntatore alla testa di una coda di messaggi vuota
 void mkEmptyProcQ(struct list_head *head) {
