@@ -69,14 +69,39 @@ int emptyChild(pcb_t *p)
     return p == NULL || emptyProcQ(&p->p_child);
 }
 
-void insertChild(pcb_t *prnt, pcb_t *p)
-{
+//rendi la pcb puntata da p figlia del pcb puntato da prnt
+void insertChild(pcb_t *prnt, pcb_t *p) {
+    //inserisco in coda
+    list_add_tail(&p->p_sib, &prnt->p_child);
+    p->p_parent=prnt;
 }
 
-pcb_t *removeChild(pcb_t *p)
-{
+
+//rimuovi il primo figlio della pcb puntata da p e ritornalo, se p non ha figli ritorna NULL 
+pcb_t *removeChild(pcb_t *p) {
+    if(emptyProcQ(&p->p_child))
+        return NULL;
+    else{
+        //salvo figlio prima di rimuoverlo per poi returnarlo
+        pcb_t* C= container_of(p->p_child.next, pcb_t, p_sib);
+        //rimozione figlio dalla lista
+        list_del(p->p_child.next);
+        return C;
+    }
 }
 
-pcb_t *outChild(pcb_t *p)
-{
+//rendi la pcb puntata da p non più figlia di suo padre e ritornalo, se p non ha padre ritorna NULL
+pcb_t *outChild(pcb_t *p) {
+    if(p->p_parent==NULL)
+        return NULL;
+    else{
+            list_for_each(*list_head, &p->p_parent->p_child){
+                pcb_t *current= container_of(*list_head,pcb_t, pcb_sib);
+                if(current == p){
+                    list_del(*list_head);
+                    return p;
+                }
+            }
+            return NULL;
+        }
 }
