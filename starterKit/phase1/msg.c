@@ -15,14 +15,21 @@ void freeMsg(msg_t *m) {
 //un elemento dalla lista (assicurati di dare un valore a tutti 
 //i campi del messaggio e poi ritorna un puntatore all'elem rimosso)
 msg_t *allocMsg() {
-    if(msgFree_h==NULL)
+    if (list_empty(&msgFree_h)) {
         return NULL;
-    else{
-        msg_t *tmp=container_of(msgFree_h.next,msg_t,*msg_PTR);
-        list_del(msgFree_h.next);
-        list_add(&tmp->m_list,&msgTable);
-        return tmp;
     }
+
+    struct list_head *pos;
+    msg_t *msg;
+
+    list_for_each(pos, &msgFree_h) {
+        msg = container_of(pos, msg_t, m_list);
+        list_del(&msg->m_list);
+        INIT_LIST_HEAD(&msg->m_list);
+        return msg;
+    }
+
+    return NULL;
 }
 
 // Inizializza una variabile come puntatore alla testa di una coda di messaggi vuota

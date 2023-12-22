@@ -95,13 +95,14 @@ pcb_t *outChild(pcb_t *p) {
     if(p->p_parent==NULL)
         return NULL;
     else{
-            list_for_each(*list_head, &p->p_parent->p_child){
-                pcb_t *current= container_of(*list_head,pcb_t, pcb_sib);
-                if(current == p){
-                    list_del(*list_head);
-                    return p;
-                }
+        struct list_head *pos;
+        list_for_each(pos, &p->p_parent->p_child){
+            pcb_t *current= container_of(pos,pcb_t, p_sib);
+            if(current == p){
+                list_del(pos);
+                return p;
             }
-            return NULL;
         }
+        return NULL;
+    }
 }
