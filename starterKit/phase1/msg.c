@@ -4,6 +4,10 @@ static msg_t msgTable[MAXMESSAGES];
 LIST_HEAD(msgFree_h);
 
 void initMsgs() {
+    INIT_LIST_HEAD(&msgFree_h);
+    for (int i = 0; i < MAXMESSAGES; i++) {
+        list_add(&msgTable[i].m_list, &msgFree_h);
+    }
 }
 
 //inserisci l'elemento puntato da m nella lista msgFree (lo metto in testa)
@@ -33,7 +37,7 @@ msg_t *allocMsg() {
 }
 
 // Inizializza una variabile come puntatore alla testa di una coda di messaggi vuota
-void mkEmptyProcQ(struct list_head *head) {
+void mkEmptyMessageQ(struct list_head *head) {
     INIT_LIST_HEAD(head);
 }
 
@@ -78,4 +82,8 @@ msg_t *popMessage(struct list_head *head, pcb_t *p_ptr) {
 
 
 msg_t *headMessage(struct list_head *head) {
+    if (emptyMessageQ(head))
+        return NULL;
+    else
+        return container_of(head->next, msg_t, m_list);
 }

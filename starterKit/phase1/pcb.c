@@ -4,24 +4,44 @@ static pcb_t pcbTable[MAXPROC];
 LIST_HEAD(pcbFree_h);
 static int next_pid = 1;
 
-void initPcbs()
-{
+void initPcbs() {
+  INIT_LIST_HEAD (&pcbFree_h);
+  for (int i = 0; i<MAXPROC; i++)
+    {
+        list_add (&pcbTable[i].p_list, &pcbFree_h);
+    }
 }
 
-void freePcb(pcb_t *p)
-{
+void freePcb(pcb_t *p) {
+    list_add (&p->p_list, &pcbFree_h);
 }
 
-pcb_t *allocPcb()
-{
+pcb_t *allocPcb() {
+    if (list_empty (&pcbFree_h))
+        return NULL;
+    else
+    {
+        pcb_t *new_pcb = container_of(pcbFree_h.next, pcb_t, p_list);
+        list_del(pcbFree_h.next);
+        new_pcb->p_parent = NULL;
+        new_pcb->p_supportStruct = NULL;
+        new_pcb->p_pid = next_pid++;
+        new_pcb->p_time = 0;
+        INIT_LIST_HEAD(&new_pcb->p_child);
+        INIT_LIST_HEAD(&new_pcb->p_sib);
+        INIT_LIST_HEAD(&new_pcb->msg_inbox);
+        return new_pcb;
+    }  
+}
+        
+void mkEmptyProcQ(struct list_head *head) {
+    INIT_LIST_HEAD (head);
 }
 
-void mkEmptyProcQ(struct list_head *head)
-{
-}
+int emptyProcQ(struct list_head *head) {
 
-int emptyProcQ(struct list_head *head)
-{
+    return list_empty (head);
+
 }
 
 void insertProcQ(struct list_head *head, pcb_t *p)
@@ -34,7 +54,8 @@ pcb_t *headProcQ(struct list_head *head)
     if (emptyProcQ(head))
         return NULL;
     else
-        container_of(head->next, pcb_t, p_list);
+        return container_of(head->next, pcb_t, p_list);
+
 }
 
 pcb_t *removeProcQ(struct list_head *head)
@@ -52,12 +73,13 @@ pcb_t *removeProcQ(struct list_head *head)
 */
 pcb_t *outProcQ(struct list_head *head, pcb_t *p)
 {
-    struct list_head *iter;
-    list_for_each(iter, &(p->p_list))
-    {
-        if (iter == head)
-        {
-            list_del(iter);
+    if (emptyProcQ(head))
+        return NULL;
+    struct list_head *pos;
+    list_for_each(pos, head){
+        pcb_t *current= container_of(pos,pcb_t, p_list);
+        if(current == p){
+            list_del(pos);
             return p;
         }
     }
