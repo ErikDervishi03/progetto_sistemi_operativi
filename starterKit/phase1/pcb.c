@@ -4,6 +4,9 @@ static pcb_t pcbTable[MAXPROC];
 LIST_HEAD(pcbFree_h);
 static int next_pid = 1;
 
+/*
+    Inizializza la lista pcb
+*/
 void initPcbs() {
   INIT_LIST_HEAD (&pcbFree_h);
   for (int i = 0; i<MAXPROC; i++)
@@ -12,10 +15,17 @@ void initPcbs() {
     }
 }
 
+/*
+    inserisce l'elemento puntato da p nella lista pcbFree in testa
+*/
 void freePcb(pcb_t *p) {
     list_add (&p->p_list, &pcbFree_h);
 }
 
+/*
+    ritorna NULL se la pcbFree list è vuota, sennò rimuovi
+    un elemento dalla lista e ritorna un puntatore all'elem rimosso
+*/
 pcb_t *allocPcb() {
     if (list_empty (&pcbFree_h))
         return NULL;
@@ -33,22 +43,35 @@ pcb_t *allocPcb() {
         return new_pcb;
     }  
 }
-        
+
+/*
+    Inizializza una variabile come puntatore alla testa di una coda di pcb vuota
+*/
 void mkEmptyProcQ(struct list_head *head) {
     INIT_LIST_HEAD (head);
 }
 
+/*
+    Verifica se una coda di pcb è vuota
+*/
 int emptyProcQ(struct list_head *head) {
 
     return list_empty (head);
 
 }
 
+/*
+    Inserisce un elemento alla fine della coda di pcb
+*/
 void insertProcQ(struct list_head *head, pcb_t *p)
 {
     list_add_tail(&p->p_list, head);
 }
 
+/*
+    dato un puntatore list_head, restituisce il puntatore all'istanza della struttura che lo contiene
+    se la lista è vuota, ritorna NULL
+*/
 pcb_t *headProcQ(struct list_head *head)
 {
     if (emptyProcQ(head))
@@ -58,6 +81,10 @@ pcb_t *headProcQ(struct list_head *head)
 
 }
 
+/*
+    rimuovi il primo elemento della coda di processi puntata da head e ritornalo
+    se la coda è vuota, ritorna NULL
+*/
 pcb_t *removeProcQ(struct list_head *head)
 {
     if (emptyProcQ(head))
@@ -66,6 +93,7 @@ pcb_t *removeProcQ(struct list_head *head)
     list_del(head->next);
     return ptr_to_dequeue;
 }
+
 /*
     1)controllo che head appartenga a p->p_list
     2)se non appartiene, ritorno NULL
@@ -86,6 +114,9 @@ pcb_t *outProcQ(struct list_head *head, pcb_t *p)
     return NULL;
 }
 
+/*
+    retorna true se il pcb puntato da p non ha figli, false altrimenti
+*/
 int emptyChild(pcb_t *p)
 {
     return p == NULL || emptyProcQ(&p->p_child);
@@ -97,7 +128,6 @@ void insertChild(pcb_t *prnt, pcb_t *p) {
     list_add_tail(&p->p_sib, &prnt->p_child);
     p->p_parent=prnt;
 }
-
 
 //rimuovi il primo figlio della pcb puntata da p e ritornalo, se p non ha figli ritorna NULL 
 pcb_t *removeChild(pcb_t *p) {

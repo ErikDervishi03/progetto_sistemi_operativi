@@ -3,6 +3,9 @@
 static msg_t msgTable[MAXMESSAGES];
 LIST_HEAD(msgFree_h);
 
+/*
+    Inizializza la lista msg
+*/
 void initMsgs() {
     INIT_LIST_HEAD(&msgFree_h);
     for (int i = 0; i < MAXMESSAGES; i++) {
@@ -15,6 +18,7 @@ void freeMsg(msg_t *m) {
     list_del(&m->m_list);
     list_add_tail(&m->m_list,&msgFree_h);
 }
+
 //ritorna NULL se la msgFree list è vuota, sennò rimuovi
 //un elemento dalla lista (assicurati di dare un valore a tutti 
 //i campi del messaggio e poi ritorna un puntatore all'elem rimosso)
@@ -80,7 +84,9 @@ msg_t *popMessage(struct list_head *head, pcb_t *p_ptr) {
     return NULL; // Restituisce NULL se nessun messaggio da p_ptr è stato trovato
 }
 
-
+/*
+    restitusce il primo messaggio della coda senza rimuoverlo
+*/
 msg_t *headMessage(struct list_head *head) {
     if (emptyMessageQ(head))
         return NULL;
