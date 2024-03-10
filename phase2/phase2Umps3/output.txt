@@ -1,0 +1,49 @@
+Don't Panic.
+p2 started correctly
+p2 get pid successfully
+p2 is OK
+p1 knows p2 ended
+p3 started correctly
+p3 - CLOCKWAIT OK
+p3 - CPU time correctly maintained
+p1 knows p3 ended
+hp_p1 starts
+hp_p2 starts
+first incarnation of p4 starts
+second incarnation of p4 starts
+p4 is OK
+p1 knows p4's first incarnation ended
+p1 knows p4's second incarnation ended
+p5 starts
+p6 starts
+p7 starts
+p8 starts
+Bus Error (as expected): Access non-existent memory
+p8 ok
+p5a starts
+check p8 root and leaf
+memory management trap
+p8root starts
+Correct Support Structure Address
+child1 starts
+child2 starts
+Address Error (as expected): non-kuseg access w/KU=1
+leaf process (1) starts
+leaf process (2) starts
+leaf process (3) starts
+leaf process (4) starts
+p5sys enter
+High level SYS call from kernel mode process
+p5 ok
+p8root starts
+child1 starts
+child2 starts
+leaf process (1) starts
+leaf process (2) starts
+leaf process (3) starts
+leaf process (4) starts
+p9 starts
+p10 starts
+p9 and p10 ok
+A towel, it says, is about the most massively useful thing an interstellar hitchhiker can have.
+System halted

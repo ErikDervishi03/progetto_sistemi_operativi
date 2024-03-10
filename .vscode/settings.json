@@ -1,0 +1,7 @@
+{
+  "files.associations": {
+    "const.h": "c",
+    "types.h": "c",
+    "libumps.h": "c"
+  }
+}

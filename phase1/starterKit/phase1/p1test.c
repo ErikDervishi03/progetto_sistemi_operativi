@@ -19,51 +19,55 @@
 #include "./headers/pcb.h"
 #include "./headers/msg.h"
 
-char   okbuf[2048]; /* sequence of progress messages */
-char   errbuf[128]; /* contains reason for failing */
-char   msgbuf[128]; /* nonrecoverable error message before shut down */
+char okbuf[2048]; /* sequence of progress messages */
+char errbuf[128]; /* contains reason for failing */
+char msgbuf[128]; /* nonrecoverable error message before shut down */
 pcb_t *procp[MAXPROC], *p, *q, *firstproc, *lastproc, *midproc;
-char  *mp = okbuf;
+char *mp = okbuf;
 msg_t *msg[MAXMESSAGES], *m, *n, *firstmsg, *lastmsg, *midmsg;
 
-
 #define TRANSMITTED 5
-#define ACK         1
-#define PRINTCHR    2
-#define CHAROFFSET  8
-#define STATUSMASK  0xFF
-#define TERM0ADDR   0x10000254
+#define ACK 1
+#define PRINTCHR 2
+#define CHAROFFSET 8
+#define STATUSMASK 0xFF
+#define TERM0ADDR 0x10000254
 
 typedef unsigned int devreg;
 
 /* This function returns the terminal transmitter status value given its address */
-devreg termstat(memaddr *stataddr) {
+devreg termstat(memaddr *stataddr)
+{
     return ((*stataddr) & STATUSMASK);
 }
 
 /* This function prints a string on specified terminal and returns TRUE if
  * print was successful, FALSE if not   */
-unsigned int termprint(char *str, unsigned int term) {
-    memaddr     *statusp;
-    memaddr     *commandp;
-    devreg       stat;
-    devreg       cmd;
+unsigned int termprint(char *str, unsigned int term)
+{
+    memaddr *statusp;
+    memaddr *commandp;
+    devreg stat;
+    devreg cmd;
     unsigned int error = FALSE;
 
-    if (term < DEVPERINT) {
+    if (term < DEVPERINT)
+    {
         /* terminal is correct */
         /* compute device register field addresses */
-        statusp  = (devreg *)(TERM0ADDR + (term * DEVREGSIZE) + (TRANSTATUS * DEVREGLEN));
+        statusp = (devreg *)(TERM0ADDR + (term * DEVREGSIZE) + (TRANSTATUS * DEVREGLEN));
         commandp = (devreg *)(TERM0ADDR + (term * DEVREGSIZE) + (TRANCOMMAND * DEVREGLEN));
 
         /* test device status */
         stat = termstat(statusp);
-        if (stat == READY || stat == TRANSMITTED) {
+        if (stat == READY || stat == TRANSMITTED)
+        {
             /* device is available */
 
             /* print cycle */
-            while (*str != EOS && !error) {
-                cmd       = (*str << CHAROFFSET) | PRINTCHR;
+            while (*str != EOS && !error)
+            {
+                cmd = (*str << CHAROFFSET) | PRINTCHR;
                 *commandp = cmd;
 
                 /* busy waiting */
@@ -78,20 +82,22 @@ unsigned int termprint(char *str, unsigned int term) {
                     /* move to next char */
                     str++;
             }
-        } else
+        }
+        else
             /* device is not available */
             error = TRUE;
-    } else
+    }
+    else
         /* wrong terminal device number */
         error = TRUE;
 
     return (!error);
 }
 
-
 /* This function placess the specified character string in okbuf and
  *	causes the string to be written out to terminal0 */
-void addokbuf(char *strp) {
+void addokbuf(char *strp)
+{
     char *tstrp = strp;
     while ((*mp++ = *strp++) != '\0')
         ;
@@ -99,12 +105,12 @@ void addokbuf(char *strp) {
     termprint(tstrp, 0);
 }
 
-
 /* This function placess the specified character string in errbuf and
  *	causes the string to be written out to terminal0.  After this is done
  *	the system shuts down with a panic message */
-void adderrbuf(char *strp) {
-    char *ep    = errbuf;
+void adderrbuf(char *strp)
+{
+    char *ep = errbuf;
     char *tstrp = strp;
 
     while ((*ep++ = *strp++) != '\0')
@@ -115,20 +121,21 @@ void adderrbuf(char *strp) {
     PANIC();
 }
 
-
-
-int main(void) {
+int main(void)
+{
     int i;
 
     initPcbs();
     addokbuf("Initialized process control blocks\n");
 
     /* Check allocProc */
-    for (i = 0; i < MAXPROC; i++) {
+    for (i = 0; i < MAXPROC; i++)
+    {
         if ((procp[i] = allocPcb()) == NULL)
             adderrbuf("allocPcb: unexpected NULL\n");
     }
-    if (allocPcb() != NULL) {
+    if (allocPcb() != NULL)
+    {
         adderrbuf("allocPcb: allocated more than MAXPROC entries\n");
     }
     addokbuf("allocPcb ok\n");
@@ -144,21 +151,23 @@ int main(void) {
     if (!emptyProcQ(&qa))
         adderrbuf("emptyProcQ: unexpected FALSE\n");
     addokbuf("Inserting...   \n");
-    for (i = 0; i < 10; i++) {
+    for (i = 0; i < 10; i++)
+    {
         if ((q = allocPcb()) == NULL)
             adderrbuf("allocPcb: unexpected NULL while insert\n");
-        switch (i) {
-            case 0:
-                firstproc = q;
-                break;
-            case 5:
-                midproc = q;
-                break;
-            case 9:
-                lastproc = q;
-                break;
-            default:
-                break;
+        switch (i)
+        {
+        case 0:
+            firstproc = q;
+            break;
+        case 5:
+            midproc = q;
+            break;
+        case 9:
+            lastproc = q;
+            break;
+        default:
+            break;
         }
         insertProcQ(&qa, q);
     }
@@ -184,7 +193,8 @@ int main(void) {
 
     /* Check if removeProc and insertProc remove in the correct order */
     addokbuf("Removing...   \n");
-    for (i = 0; i < 8; i++) {
+    for (i = 0; i < 8; i++)
+    {
         if ((q = removeProcQ(&qa)) == NULL)
             adderrbuf("removeProcQ: unexpected NULL\n");
         freePcb(q);
@@ -207,7 +217,8 @@ int main(void) {
 
     /* make procp[1] through procp[9] children of procp[0] */
     addokbuf("Inserting...   \n");
-    for (i = 1; i < 10; i++) {
+    for (i = 1; i < 10; i++)
+    {
         insertChild(procp[0], procp[i]);
     }
     addokbuf("Inserted 9 children   \n");
@@ -231,7 +242,8 @@ int main(void) {
 
     /* Check removeChild */
     addokbuf("Removing...   \n");
-    for (i = 0; i < 7; i++) {
+    for (i = 0; i < 7; i++)
+    {
         if ((q = removeChild(procp[0])) == NULL)
             adderrbuf("removeChild: unexpected NULL   \n");
     }
@@ -251,11 +263,13 @@ int main(void) {
     addokbuf("Initialized messages   \n");
 
     /* Check allocMsg */
-    for (i = 0; i < MAXMESSAGES; i++) {
+    for (i = 0; i < MAXMESSAGES; i++)
+    {
         if ((msg[i] = allocMsg()) == NULL)
             adderrbuf("allocMsg: unexpected NULL   \n");
     }
-    if (allocMsg() != NULL) {
+    if (allocMsg() != NULL)
+    {
         adderrbuf("allocMsg: allocated more than MAXMESSAGES entries   \n");
     }
     addokbuf("allocMsg ok   \n");
@@ -270,21 +284,23 @@ int main(void) {
     if (!emptyMessageQ(&qm))
         adderrbuf("emptyMessageQ: unexpected FALSE   \n");
     addokbuf("Inserting...   \n");
-    for (i = 0; i < 10; i++) {
+    for (i = 0; i < 10; i++)
+    {
         if ((m = allocMsg()) == NULL)
             adderrbuf("allocMsg: unexpected NULL while insert   \n");
-        switch (i) {
-            case 0:
-                firstmsg = m;
-                break;
-            case 5:
-                midmsg = m;
-                break;
-            case 9:
-                lastmsg = m;
-                break;
-            default:
-                break;
+        switch (i)
+        {
+        case 0:
+            firstmsg = m;
+            break;
+        case 5:
+            midmsg = m;
+            break;
+        case 9:
+            lastmsg = m;
+            break;
+        default:
+            break;
         }
         insertMessage(&qm, m);
     }
@@ -319,7 +335,7 @@ int main(void) {
     n = allocMsg();
     n->m_sender = p;
     insertMessage(&qm, n);
-    msg_t* o = popMessage(&qm, p);
+    msg_t *o = popMessage(&qm, p);
     if (o == NULL || o != m)
         adderrbuf("popMessage failed with pcb   \n");
     addokbuf("popMessage with pcb ok   \n");
