@@ -1,13 +1,10 @@
-#include <umps3/umps/libumps.h>
-#include <umps3/umps/types.h>
-#include <umps3/umps/const.h>
-#include "../include/phase1/headers/msg.h"
-#include "../include/phase1/headers/pcb.h"
+#include "dep.h"
 
+cpu_t prevTOD;
 unsigned int processCount, softBlockCount;
 
 struct list_head ready_queue;
-pcb_t *current_process;
+pcb_t *currentProcess;
 
 // pcb_t blocked_pcbs[SEMDEVLEN - 1]; 
 extern void test ();
@@ -18,6 +15,16 @@ void uTLB_RefillHandler() {
   TLBWR();
   LDST((state_t*) 0x0FFFF000);
 }
+
+cpu_t getTimeElapsed () {
+  cpu_t currTOD;
+  STCK (currTOD);
+  cpu_t getTimeElapsed = currTOD - prevTOD;
+  // update prevTOD
+  STCK (prevTOD);
+  return getTimeElapsed;
+}
+
 
 void set_ramaining_PCBfield(pcb_t *p) {
   /*Set all the Process Tree fields to NULL*/
@@ -62,7 +69,7 @@ int main(){
   processCount++;
 
   // not sure about this, what status register should be set to?
-  first_p->p_s.status = ALLOFF | IEPON | IMON | TEBITON;
+  first_p->p_s.status = ALLOFF | IECON;
 
   /*set SP to RAMTOP*/
   RAMTOP(first_p->p_s.reg_sp); 
@@ -84,13 +91,13 @@ int main(){
 
   /*interrupts enabled, the processor Local Timer enabled, kernel-mode on*/
   // not sure about this, what status register should be set to?
-  second_p->p_s.status = ALLOFF | IEPON | IMON | TEBITON;
+  second_p->p_s.status = ALLOFF | IECON | TEBITON;
 
   /* SP set to RAMTOP - (2 * FRAMESIZE) (i.e.
     use the last RAM frame for its stack minus 
     the space needed by the first process*/
   // how can i find the space needed by the first process?
-  RAMTOP(second_p->p_s.reg_sp - (2 * FRAMESIZE));
+  second_p->p_s.reg_sp = RAMTOP(second_p->p_s.reg_sp) - (2 * PAGESIZE);
 
   second_p->p_s.pc_epc = (memaddr) test;
 
