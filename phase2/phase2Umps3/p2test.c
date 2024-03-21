@@ -14,9 +14,7 @@
  *        Modified by Michael Goldweber on June 19, 2020
  *          Modified by Luca Bassi, Gabriele Genovese on November 30, 2023
  */
-#include "../include/headers/const.h"
-#include "../include/headers/types.h"
-#include <umps3/umps/libumps.h>
+#include "dep.h"
 
 typedef unsigned int devregtr;
 

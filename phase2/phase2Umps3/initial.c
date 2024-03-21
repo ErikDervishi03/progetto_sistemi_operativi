@@ -6,6 +6,8 @@ unsigned int processCount, softBlockCount;
 struct list_head ready_queue;
 pcb_t *currentProcess;
 
+struct list_head BlockedPCBs;
+
 // pcb_t blocked_pcbs[SEMDEVLEN - 1]; 
 extern void test ();
 
@@ -56,7 +58,8 @@ int main(){
   processCount = 0;
   softBlockCount = 0;
   mkEmptyProcQ(&ready_queue);
-  current_process = NULL; 
+  currentProcess = NULL; 
+  INIT_LIST_HEAD(&BlockedPCBs);
 
   /*Load the system-wide Interval Timer with 100 
     milliseconds (constant PSECOND)*/

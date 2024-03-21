@@ -13,4 +13,6 @@ extern unsigned int processCount, softBlockCount;
 extern struct list_head ready_queue;
 extern pcb_t *currentProcess;
 
+extern struct list_head BlockedPCBs;
+
 extern cpu_t getTimeElapsed ();
