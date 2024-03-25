@@ -72,8 +72,49 @@ void handleIntervalTimer(){
   LDST((void *)BIOSDATAPAGE);
 }
 
+int getDeviceNumber (int line)
+{
+  devregarea_t *bus_reg_area = (devregarea_t *)BUS_REG_RAM_BASE;
+  unsigned int bitmap = bus_reg_area->interrupt_dev[EXT_IL_INDEX (line)];
+  for (int number = 0, mask = 1; number < N_DEV_PER_IL; number++, mask <<= 1)
+    if (bitmap & mask)
+      return number;
+  return -1;
+}
+
+int highestPrioityNTint(){
+  for (int line = 3; line < 8; line++){
+    if (getCAUSE() & (1 << line)){
+      return line;
+    }
+  }
+  return -1;
+}
+
+
 void handleNonTimer(){
-  //...
+
+  /*Calculate the address for this device’s device register [Section 5.1-pops]:
+  devAddrBase = 0x10000054 + ((IntlineNo - 3) * 0x80) + (DevNo * 0x10)
+  Tip: to calculate the device number you can use a switch among constants DEVxON */
+
+  int intlineNo = highestPrioityNTint();
+
+  int devNo = getDeviceNumber(intlineNo);
+
+  unsigned int devAddrBase = 0x10000054 + ((intlineNo - 3) * 0x80) + (devNo * 0x10);
+
+  /*Save off the status code from the device’s device register*/
+
+  devregarea_t *statusCode = (devregarea_t *)BUS_REG_RAM_BASE->devreg[intlineNo][devNo];
+
+  /*Acknowledge the outstanding interrupt. This is accomplished by writing the acknowledge com-
+  mand code (ACK) in the interrupting device’s device register. Alternatively, writing a new com-
+  mand in the interrupting device’s device register will also acknowledge the interrupt.*/
+
+  statusCode->term.recv_command = ACK;
+
+  LDST((void *)BIOSDATAPAGE);
 }
 
 void interruptHandler() {
@@ -93,5 +134,4 @@ void interruptHandler() {
   }
   endInterrupt();
 }
-
 
