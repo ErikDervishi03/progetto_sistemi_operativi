@@ -6,9 +6,9 @@ unsigned int processCount, softBlockCount;
 struct list_head ready_queue;
 pcb_t *currentProcess;
 
-struct list_head BlockedPCBs;
+pcb_PTR blockedPCBs[SEMDEVLEN - 1];
+struct list_head PseudoClockWP; // pseudo-clock waiting process
 
-// pcb_t blocked_pcbs[SEMDEVLEN - 1]; 
 extern void test ();
 
 void uTLB_RefillHandler() {
@@ -44,9 +44,9 @@ void set_ramaining_PCBfield(pcb_t *p) {
 int main(){
 
   passupvector_t *passupvector = (passupvector_t *) PASSUPVECTOR;
-  // passupvector->tlb_refill_handler = (memaddr) uTLB_RefillHandler;
+  passupvector->tlb_refill_handler = (memaddr) uTLB_RefillHandler;
   passupvector->tlb_refill_stackPtr = (memaddr) KERNELSTACK;
-  // passupvector->exception_handler = (memaddr) exceptionHandler;
+  passupvector->exception_handler = (memaddr) exceptionHandler;
   passupvector->exception_stackPtr = (memaddr) KERNELSTACK;
 
   uTLB_RefillHandler(); // should i call this?
@@ -59,7 +59,11 @@ int main(){
   softBlockCount = 0;
   mkEmptyProcQ(&ready_queue);
   currentProcess = NULL; 
-  INIT_LIST_HEAD(&BlockedPCBs);
+  INIT_LIST_HEAD(&PseudoClockWP);
+
+  for(int i = 0; i < SEMDEVLEN - 1; i++) {
+    blockedPCBs[i] = NULL;
+  }
 
   /*Load the system-wide Interval Timer with 100 
     milliseconds (constant PSECOND)*/

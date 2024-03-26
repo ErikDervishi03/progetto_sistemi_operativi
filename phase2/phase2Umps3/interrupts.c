@@ -1,4 +1,7 @@
+#include "const.h"
 #include "dep.h"
+#include <umps3/umps/libumps.h>
+#include <umps3/umps/types.h>
 
 /*
 A device or timer interrupt occurs when:
@@ -33,7 +36,7 @@ void endInterrupt(){
 
 void handlePLT(){
 
-  /*here we areloading the timer with a new value to acknowledge the PLT interrupt */
+  /*here we are loading the timer with a new value to acknowledge the PLT interrupt */
   currentProcess->p_time += getTimeElapsed ();
 
   /*Copy the processor state at the time of the exception (located at the start of the BIOS Data
@@ -58,15 +61,16 @@ void handleIntervalTimer(){
   struct list_head* iter;
 
   /*Unblock all PCBs blocked waiting a Pseudo-clock tick*/
-  list_for_each(iter,&BlockedPCBs) {
+  list_for_each(iter,&PseudoClockWP) {
     pcb_t* item = container_of(iter,pcb_t,p_list);
 
     insertProcQ(&ready_queue, item);
 
     list_del(iter);
 
-    softBlockCount--;
+    softBlockCount--;// ?
   }
+
   /*Return control to the Current Process: perform a LDST on the saved exception state (located at
   the start of the BIOS Data Page*/
   LDST((void *)BIOSDATAPAGE);
@@ -82,8 +86,8 @@ int getDeviceNumber (int line)
   return -1;
 }
 
-int highestPrioityNTint(){
-  for (int line = 3; line < 8; line++){
+int getHighestPrioityNTint(){
+  for (int line = DEV_IL_START; line < N_INTERRUPT_LINES; line++){
     if (getCAUSE() & (1 << line)){
       return line;
     }
@@ -91,28 +95,48 @@ int highestPrioityNTint(){
   return -1;
 }
 
-
 void handleNonTimer(){
 
   /*Calculate the address for this device’s device register [Section 5.1-pops]:
   devAddrBase = 0x10000054 + ((IntlineNo - 3) * 0x80) + (DevNo * 0x10)
   Tip: to calculate the device number you can use a switch among constants DEVxON */
 
-  int intlineNo = highestPrioityNTint();
+  int intlineNo = getHighestPrioityNTint();
+
+  if(intlineNo == -1)
+    return;
 
   int devNo = getDeviceNumber(intlineNo);
+
+  if(devNo == -1)
+    return;
 
   unsigned int devAddrBase = 0x10000054 + ((intlineNo - 3) * 0x80) + (devNo * 0x10);
 
   /*Save off the status code from the device’s device register*/
 
-  devregarea_t *statusCode = (devregarea_t *)BUS_REG_RAM_BASE->devreg[intlineNo][devNo];
+  devregarea_t *bus_reg_area = (devregarea_t *)BUS_REG_RAM_BASE;
+  devreg_t *devReg = &bus_reg_area->devreg[intlineNo][devNo];
+  unsigned int status = devReg->dtp.status;
 
   /*Acknowledge the outstanding interrupt. This is accomplished by writing the acknowledge com-
   mand code (ACK) in the interrupting device’s device register. Alternatively, writing a new com-
   mand in the interrupting device’s device register will also acknowledge the interrupt.*/
 
-  statusCode->term.recv_command = ACK;
+  devReg->dtp.command = ACK; // devReg->term.recv_command = ACK; ? 
+  devReg->term.recv_command = ACK; 
+
+  /*Send a message and unblock the PCB waiting the status response from this (sub)device. This
+  operation should unblock the process (PCB) which initiated this I/O operation and then re-
+  quested the status response via a SYS2 operation.
+  Important: Use of SYSCALL is discourage because both use BIOSDATAPAGE*/
+
+  pcb_t *waitingProcess = blockedPCBs[(intlineNo - 2) * N_DEV_PER_IL + devNo]; 
+  waitingProcess->p_s.reg_a0 = RECEIVEMESSAGE;
+  waitingProcess->p_s.reg_a1 = ;
+  
+  if(currentProcess == NULL)
+    WAIT();
 
   LDST((void *)BIOSDATAPAGE);
 }
@@ -130,7 +154,7 @@ void interruptHandler() {
   }
 
   else {
-    //handleNonTimer();
+    handleNonTimer();
   }
   endInterrupt();
 }
