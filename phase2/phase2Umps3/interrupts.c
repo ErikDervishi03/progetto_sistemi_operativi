@@ -1,7 +1,4 @@
-#include "const.h"
 #include "dep.h"
-#include <umps3/umps/libumps.h>
-#include <umps3/umps/types.h>
 
 /*
 A device or timer interrupt occurs when:
@@ -41,7 +38,10 @@ void handlePLT(){
 
   /*Copy the processor state at the time of the exception (located at the start of the BIOS Data
   Page [Section 3.2.2-pops]) into the Current Process’s PCB (p_s)*/
-  currentProcess->p_s = *( (state_t*) BIOSDATAPAGE);
+  currentProcess->p_s = (state_t*) BIOSDATAPAGE;
+
+  // DA FARE : copiare tutti gli ele singolarmente
+  
   
   /*Place the Current Process on the Ready Queue; transitioning the Current Process from the
   “running” state to the “ready” state*/
@@ -116,15 +116,15 @@ void handleNonTimer(){
   /*Save off the status code from the device’s device register*/
 
   devregarea_t *bus_reg_area = (devregarea_t *)BUS_REG_RAM_BASE;
-  devreg_t *devReg = &bus_reg_area->devreg[intlineNo][devNo];
+  devreg_t *devReg = &bus_reg_area->devreg[intlineNo - DEV_IL_START][devNo];
   unsigned int status = devReg->dtp.status;
 
   /*Acknowledge the outstanding interrupt. This is accomplished by writing the acknowledge com-
   mand code (ACK) in the interrupting device’s device register. Alternatively, writing a new com-
   mand in the interrupting device’s device register will also acknowledge the interrupt.*/
 
-  devReg->dtp.command = ACK; // devReg->term.recv_command = ACK; ? 
-  devReg->term.recv_command = ACK; 
+  devReg->dtp.command = ACK;
+  //devReg->term.recv_command = ACK; this is done automatically cause it's a union (go see devreg_t in types.h)
 
   /*Send a message and unblock the PCB waiting the status response from this (sub)device. This
   operation should unblock the process (PCB) which initiated this I/O operation and then re-
@@ -132,9 +132,22 @@ void handleNonTimer(){
   Important: Use of SYSCALL is discourage because both use BIOSDATAPAGE*/
 
   pcb_t *waitingProcess = blockedPCBs[(intlineNo - 2) * N_DEV_PER_IL + devNo]; 
-  waitingProcess->p_s.reg_a0 = RECEIVEMESSAGE;
-  waitingProcess->p_s.reg_a1 = ;
-  
+
+  if(waitingProcess != NULL){
+    /*Place the stored off status code in the newly unblocked PCB’s v0 register*/
+    waitingProcess->p_s.reg_v0 = status;
+
+    /*Insert the newly unblocked PCB on the Ready Queue, transitioning this process from the
+    “blocked” state to the “ready” state*/
+    insertProcQ(&ready_queue, waitingProcess);
+    //blockedPCBs[(intlineNo - 2) * N_DEV_PER_IL + devNo] = NULL; va fatto?
+
+
+    //waitingProcess->p_s.reg_a0 = RECEIVEMESSAGE;
+    //waitingProcess->p_s.reg_a1 = (memaddr)waitingProcess;
+
+  }
+
   if(currentProcess == NULL)
     WAIT();
 
