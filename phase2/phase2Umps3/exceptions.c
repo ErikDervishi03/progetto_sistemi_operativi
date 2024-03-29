@@ -1,44 +1,22 @@
-#include <umps3/umps/libumps.h>
-#include <umps3/umps/types.h>
-#include <umps3/umps/const.h>
-#include "../include/phase1/headers/msg.h"
-#include <umps3/umps/const.h>
-#include "../include/phase1/headers/pcb.h"
+#include "dep.h"
+#include <stdlib.h>
 
 void receiveMessage(pid_t *sender, void *payload);
 void sendMessage(pid_t destination, void *payload);
 
-void exceptionsHandler ()
-{
-    switch (CAUSE_GET_EXCCODE (getCAUSE ()))
-    {
-    case 0:
-        interruptHandler(); 
-        break;
-    case 1:
-    case 2:
-    case 3:
-        passupOrDie(PGFAULTEXCEPT);
-        break;    
-    case 8:
-        systemcallHandler();
-        break;
-    default:
-        passupordie(GENERALEXCEPT);
-        break;
-    }
-}
-
 void passupOrDie(int index)
 {
     if (currentProcess->p_supportStruct == NULL)
-        {
-            termProcessByPCB (currentProcess);
-            scheduler ();
-        }
+    {
+        while(removeProcQ(&currentProcess->p_child));
+        while(removeProcQ(&currentProcess->p_sib));
+        free(currentProcess);
+        currentProcess = NULL;
+        scheduler ();
+    }
     else
     {
-        currentProcess->p_supportStruct->sup_exceptState[index] = state_t*BIOSDATAPAGE;
+        currentProcess->p_supportStruct->sup_exceptState[index] = *(state_t*)BIOSDATAPAGE;
         context_t ctx = currentProcess->p_supportStruct->sup_exceptContext[index];
         LDCXT (ctx.stackPtr, ctx.status, ctx.pc);
     }
@@ -53,7 +31,7 @@ void systemcallHandler() {
         passupOrDie(GENERALEXCEPT);
     }
 
-    EXCEPTION_STATE->pc_epc += WORD_SIZE; // Incremento del PC per chiamate di sistema non bloccanti
+    ((state_t *)BIOSDATAPAGE)->pc_epc += WORD_SIZE; // Incremento del PC per chiamate di sistema non bloccanti
 
     switch (GPR(a0)) {
         case SENDMESSAGE:
@@ -73,7 +51,7 @@ void systemcallHandler() {
     }
 
     // Restituisce il controllo al processo interrotto
-    LDST(state_t*BIOSDATAPAGE);
+    LDST((state_t*)BIOSDATAPAGE);
 }
 
 void receiveMessage(pid_t *sender, void *payload) {
@@ -90,7 +68,7 @@ void receiveMessage(pid_t *sender, void *payload) {
         currentProcess->p_state = BLOCKED;
         insertProcQ(&blockedQueue, currentProcess);
         // Restituisce il controllo al processo interrotto
-        LDST(state_t*BIOSDATAPAGE);
+        LDST((state_t*)BIOSDATAPAGE);
     } else {
         // Copia il mittente e il payload del messaggio
         *sender = currentProcess->p_msg->sender;
@@ -141,3 +119,28 @@ void sendMessage(pid_t destination, void *payload) {
     // Set return register to 0 (success)
     GPR(v0) = 0;
 }
+
+
+void exceptionHandler ()
+{
+    switch (CAUSE_GET_EXCCODE (getCAUSE ()))
+    {
+    case 0:
+        interruptHandler(); 
+        break;
+    case 1:
+    case 2:
+    case 3:
+        passupOrDie(PGFAULTEXCEPT);
+        break;    
+    case 8:
+        systemcallHandler();
+        break;
+    default:
+        passupordie(GENERALEXCEPT);
+        break;
+    }
+}
+
+
+

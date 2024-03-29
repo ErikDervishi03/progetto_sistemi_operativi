@@ -17,3 +17,9 @@ extern pcb_PTR blockedPCBs[SEMDEVLEN - 1];
 extern struct list_head PseudoClockWP; // pseudo-clock waiting process
 
 extern cpu_t getTimeElapsed ();
+
+extern void interruptHandler(); 
+
+extern void scheduler();
+
+extern void exceptionHandler ();

@@ -1,22 +1,18 @@
-#include <umps3/umps/libumps.h>
-#include <umps3/umps/types.h>
-#include <umps3/umps/const.h>
-#include "../include/phase1/headers/msg.h"
-#include "../include/phase1/headers/pcb.h"
+#include "dep.h"
 
 void scheduler(){
     pcb_t* readyproc = removeProcQ(&ready_queue);
    
     if(readyproc != NULL){
-        current_process = readyproc;
+        currentProcess = readyproc;
         //non so che significa, presa dal github
-        current_process->p_s.status = (current_process->p_s.status) | TEBITON;
+        currentProcess->p_s.status = (currentProcess->p_s.status) | TEBITON;
         setTIMER(5000);
-        LDST(&current_process->p_s);
+        LDST(&currentProcess->p_s);
     }
     else{
         //non so come verificare se SSI sia l'unico in esecuzione
-        if(processCount == 1    )
+        if(processCount == 1)
             HALT();
         else if(processCount > 1 && softBlockCount > 0)
             WAIT();

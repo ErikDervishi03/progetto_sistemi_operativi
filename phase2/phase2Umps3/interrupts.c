@@ -1,4 +1,6 @@
 #include "dep.h"
+#include <umps3/umps/libumps.h>
+#include <umps3/umps/types.h>
 
 /*
 A device or timer interrupt occurs when:
@@ -21,15 +23,16 @@ void startInterrupt(){
   setSTATUS (getSTATUS () & ~TEBITON);
 }
 
-void endInterrupt(){
-  /*
-    set the Timer Enable Bit (TEBIT) in the STATUS 
-    register to enable further timer interrupts
-  */
+void endInterrupt ()
+{
   setSTATUS (getSTATUS () | TEBITON);
-
-  // ...
+  STCK (prevTOD);
+  if (currentProcess != NULL)
+    LDST ((state_t *)BIOSDATAPAGE);
+  else
+    scheduler ();
 }
+
 
 void handlePLT(){
 
@@ -38,10 +41,7 @@ void handlePLT(){
 
   /*Copy the processor state at the time of the exception (located at the start of the BIOS Data
   Page [Section 3.2.2-pops]) into the Current Process’s PCB (p_s)*/
-  currentProcess->p_s = (state_t*) BIOSDATAPAGE;
-
-  // DA FARE : copiare tutti gli ele singolarmente
-  
+  currentProcess->p_s = *(state_t*) BIOSDATAPAGE;
   
   /*Place the Current Process on the Ready Queue; transitioning the Current Process from the
   “running” state to the “ready” state*/
@@ -49,7 +49,7 @@ void handlePLT(){
   currentProcess = NULL;
 
   /*Call the Scheduler*/
-  sheduler ();
+  scheduler ();
 
 }
 
@@ -133,25 +133,22 @@ void handleNonTimer(){
 
   pcb_t *waitingProcess = blockedPCBs[(intlineNo - 2) * N_DEV_PER_IL + devNo]; 
 
+  waitingProcess->p_s.reg_a3 = devAddrBase;
+  
   if(waitingProcess != NULL){
     /*Place the stored off status code in the newly unblocked PCB’s v0 register*/
-    waitingProcess->p_s.reg_v0 = status;
 
     /*Insert the newly unblocked PCB on the Ready Queue, transitioning this process from the
     “blocked” state to the “ready” state*/
     insertProcQ(&ready_queue, waitingProcess);
     //blockedPCBs[(intlineNo - 2) * N_DEV_PER_IL + devNo] = NULL; va fatto?
 
-
-    //waitingProcess->p_s.reg_a0 = RECEIVEMESSAGE;
-    //waitingProcess->p_s.reg_a1 = (memaddr)waitingProcess;
-
   }
 
   if(currentProcess == NULL)
     WAIT();
 
-  LDST((void *)BIOSDATAPAGE);
+  LDST((STATE_PTR)BIOSDATAPAGE);
 }
 
 void interruptHandler() {

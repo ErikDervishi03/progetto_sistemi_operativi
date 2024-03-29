@@ -7,7 +7,7 @@
  *
  ****************************************************************************/
 
-#include <umps/const.h>
+#include <umps3/umps/const.h>
 
 /* Number of semaphore's device */
 #define SEMDEVLEN 49

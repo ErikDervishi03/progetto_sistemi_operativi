@@ -1,9 +1,9 @@
 #ifndef PCB_H_INCLUDED
 #define PCB_H_INCLUDED
 
-#include "../../headers/const.h"
-#include "../../headers/types.h"
-#include "../../headers/listx.h"
+#include "headers/const.h"
+#include "headers/types.h"
+#include "headers/listx.h"
 
 void initPcbs();
 void freePcb(pcb_t *p);
