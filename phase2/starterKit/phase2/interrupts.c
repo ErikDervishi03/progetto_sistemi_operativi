@@ -1,6 +1,5 @@
 #include "dep.h"
-#include <umps3/umps/libumps.h>
-#include <umps3/umps/types.h>
+#include <umps3/umps/arch.h>
 
 /*
 A device or timer interrupt occurs when:
@@ -8,12 +7,11 @@ A device or timer interrupt occurs when:
   b)a Processor Local Timer (PLT) or 
     the Interval Timer makes a 0x0000.0000 ⇒0xFFFF.FFFF transition
 */
-
 void startInterrupt(){
-  if (currentProcess != NULL)
+  if (current_process != NULL)
     /* updating the execution time of the current process so that the 
        time spent handling the interrupt is not attributed to it*/
-    currentProcess->p_time += getTimeElapsed ();
+    current_process->p_time += getTimeElapsed ();
 
   /*
     clear the Timer Enable Bit (TEBIT) in the STATUS 
@@ -27,7 +25,7 @@ void endInterrupt ()
 {
   setSTATUS (getSTATUS () | TEBITON);
   STCK (prevTOD);
-  if (currentProcess != NULL)
+  if (current_process != NULL)
     LDST ((state_t *)BIOSDATAPAGE);
   else
     scheduler ();
@@ -37,16 +35,27 @@ void endInterrupt ()
 void handlePLT(){
 
   /*here we are loading the timer with a new value to acknowledge the PLT interrupt */
-  currentProcess->p_time += getTimeElapsed ();
+  current_process->p_time += getTimeElapsed ();
 
   /*Copy the processor state at the time of the exception (located at the start of the BIOS Data
   Page [Section 3.2.2-pops]) into the Current Process’s PCB (p_s)*/
-  currentProcess->p_s = *(state_t*) BIOSDATAPAGE;
+
+  state_t *p_state = (state_t *)BIOSDATAPAGE;
+  current_process->p_s.cause = p_state->cause;
+  current_process->p_s.status = p_state->status;
+  current_process->p_s.pc_epc = p_state->pc_epc;
+  current_process->p_s.hi = p_state->hi;
+  current_process->p_s.lo = p_state->lo;
+
+  for (int i=0; i < STATE_GPR_LEN; i++)
+  {
+      current_process->p_s.gpr[i] = p_state->gpr[i];
+  }
   
   /*Place the Current Process on the Ready Queue; transitioning the Current Process from the
   “running” state to the “ready” state*/
-  insertProcQ(&ready_queue, currentProcess);
-  currentProcess = NULL;
+  insertProcQ(&ready_queue, current_process);
+  current_process = NULL;
 
   /*Call the Scheduler*/
   scheduler ();
@@ -86,7 +95,7 @@ int getDeviceNumber (int line)
   return -1;
 }
 
-int getHighestPrioityNTint(){
+int getHighestPriorityNTint(){
   for (int line = DEV_IL_START; line < N_INTERRUPT_LINES; line++){
     if (getCAUSE() & (1 << line)){
       return line;
@@ -101,7 +110,7 @@ void handleNonTimer(){
   devAddrBase = 0x10000054 + ((IntlineNo - 3) * 0x80) + (DevNo * 0x10)
   Tip: to calculate the device number you can use a switch among constants DEVxON */
 
-  int intlineNo = getHighestPrioityNTint();
+  int intlineNo = getHighestPriorityNTint();
 
   if(intlineNo == -1)
     return;
@@ -111,7 +120,7 @@ void handleNonTimer(){
   if(devNo == -1)
     return;
 
-  unsigned int devAddrBase = 0x10000054 + ((intlineNo - 3) * 0x80) + (devNo * 0x10);
+  unsigned int devAddrBase = DEV_REG_ADDR(intlineNo, devNo);
 
   /*Save off the status code from the device’s device register*/
 
@@ -145,7 +154,7 @@ void handleNonTimer(){
 
   }
 
-  if(currentProcess == NULL)
+  if(current_process == NULL)
     WAIT();
 
   LDST((STATE_PTR)BIOSDATAPAGE);
