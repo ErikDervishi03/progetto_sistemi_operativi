@@ -6,8 +6,6 @@ void SSIRequest(pcb_t* sender, const int service, void* arg){
     /*CreateProcess*/
     case 1:
         {
-        /*allocate a new PCB*/
-        pcb_t *child = allocPcb();
         /*If the new process cannot be created due to lack of resources (e.g.
         no more free PBCs), an error code of -1 (constant NOPROC) will be returned*/
         if(emptyProcQ(&pcbFree_h)){
@@ -15,6 +13,8 @@ void SSIRequest(pcb_t* sender, const int service, void* arg){
             arg = (void *)NOPROC;
             break;
         }
+        /*allocate a new PCB*/
+        pcb_t *child = allocPcb();
         /*arg should contain a pointer to a 
         struct ssi_create_process_t (ssi_create_process_t *).*/
         ssi_create_process_PTR ssi_create_process = (ssi_create_process_PTR)arg;
@@ -22,15 +22,7 @@ void SSIRequest(pcb_t* sender, const int service, void* arg){
         /* initializes its fields*/
 
         /*p_s from arg->state*/
-        child->p_s.entry_hi= ssi_create_process->state->entry_hi;
-        child->p_s.cause= ssi_create_process->state->cause;
-        child->p_s.status = ssi_create_process->state->status;
-        child->p_s.hi = ssi_create_process->state->hi;
-        child->p_s.pc_epc= ssi_create_process->state->pc_epc;
-        child->p_s.lo= ssi_create_process->state->lo;
-        for(int i=0; i<=STATE_GPR_LEN; i++){
-            child->p_s.gpr[i]= ssi_create_process->state->gpr[i];
-        }
+        child->p_s = *ssi_create_process->state;
         /*p_supportStruct from arg->support. If no parameter is provided, 
         this field is set to NULL*/
         child->p_supportStruct = ssi_create_process->support;
@@ -55,11 +47,11 @@ void SSIRequest(pcb_t* sender, const int service, void* arg){
                              // SSI_function_entry_point la send mandasse l'arg giusto
 
         /* control is returned to the Current Process*/
-        LDST(&current_process);
+        LDST(&current_process->p_s);
         }
         break;
     /*DoIO*/
-    case 3:
+    case 3: // non sicuro
     {
         ssi_do_io_t *do_io = (ssi_do_io_t *)arg;
         unsigned int *commandAddr = do_io->commandAddr;

@@ -22,6 +22,8 @@ extern struct list_head pcbFree_h;
 
 extern void terminate_process(pcb_t *arg);
 
+extern void memcpy(void *dest, void *src, unsigned int n);
+
 extern cpu_t getTimeElapsed ();
 
 extern void interruptHandler(); 

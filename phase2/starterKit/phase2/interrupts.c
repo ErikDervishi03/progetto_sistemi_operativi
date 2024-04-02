@@ -1,5 +1,4 @@
 #include "dep.h"
-#include <umps3/umps/arch.h>
 
 /*
 A device or timer interrupt occurs when:
@@ -41,16 +40,7 @@ void handlePLT(){
   Page [Section 3.2.2-pops]) into the Current Process’s PCB (p_s)*/
 
   state_t *p_state = (state_t *)BIOSDATAPAGE;
-  current_process->p_s.cause = p_state->cause;
-  current_process->p_s.status = p_state->status;
-  current_process->p_s.pc_epc = p_state->pc_epc;
-  current_process->p_s.hi = p_state->hi;
-  current_process->p_s.lo = p_state->lo;
-
-  for (int i=0; i < STATE_GPR_LEN; i++)
-  {
-      current_process->p_s.gpr[i] = p_state->gpr[i];
-  }
+  current_process->p_s = *p_state;
   
   /*Place the Current Process on the Ready Queue; transitioning the Current Process from the
   “running” state to the “ready” state*/
@@ -82,7 +72,7 @@ void handleIntervalTimer(){
 
   /*Return control to the Current Process: perform a LDST on the saved exception state (located at
   the start of the BIOS Data Page*/
-  LDST((void *)BIOSDATAPAGE);
+  LDST((state_t *)BIOSDATAPAGE);
 }
 
 int getDeviceNumber (int line)
@@ -157,7 +147,7 @@ void handleNonTimer(){
   if(current_process == NULL)
     WAIT();
 
-  LDST((STATE_PTR)BIOSDATAPAGE);
+  LDST((state_t *)BIOSDATAPAGE);
 }
 
 void interruptHandler() {

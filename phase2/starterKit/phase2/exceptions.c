@@ -10,16 +10,7 @@ void passupOrDie(int index)
     else
     {
         state_t *p_state = (state_t *)BIOSDATAPAGE;
-        current_process->p_supportStruct->sup_exceptState[index].cause = p_state->cause;
-        current_process->p_supportStruct->sup_exceptState[index].status = p_state->status;
-        current_process->p_supportStruct->sup_exceptState[index].pc_epc = p_state->pc_epc;
-        current_process->p_supportStruct->sup_exceptState[index].hi = p_state->hi;
-        current_process->p_supportStruct->sup_exceptState[index].lo = p_state->lo;
-
-        for (int i=0; i < STATE_GPR_LEN; i++)
-        {
-            current_process->p_supportStruct->sup_exceptState[index].gpr[i] = p_state->gpr[i];
-        }
+        current_process->p_supportStruct->sup_exceptState[index] = *p_state;
 
         context_t ctx = current_process->p_supportStruct->sup_exceptContext[index];
         LDCXT (ctx.stackPtr, ctx.status, ctx.pc);

@@ -3,7 +3,7 @@
 
 void scheduler(){
     pcb_t* readyproc = removeProcQ(&ready_queue);
-    
+
     if(readyproc != NULL){
         current_process = readyproc;
         current_process->p_time += getTimeElapsed();

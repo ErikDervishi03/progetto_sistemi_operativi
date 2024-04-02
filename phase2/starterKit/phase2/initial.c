@@ -13,6 +13,16 @@ struct list_head PseudoClockWP; // pseudo-clock waiting process
 
 extern void test ();
 
+void memcpy(void *dest, void *src, unsigned int n)  
+{  
+  // Typecast src and dest addresses to (char *)  
+  char *csrc = (char *)src;  
+  char *cdest = (char *)dest;  
+    
+  // Copy contents of src[] to dest[]  
+  for (int i=0; i<n; i++)  
+      cdest[i] = csrc[i];  
+}
 
 void uTLB_RefillHandler() {
   setENTRYHI(0x80000000);
@@ -59,7 +69,8 @@ int main(){
   mkEmptyProcQ(&ready_queue);
   current_process = NULL; 
   mkEmptyProcQ(&PseudoClockWP);
-  ssi_pcb = allocPcb(); // ?
+  ssi_pcb = allocPcb();
+
 
   for(int i = 0; i < SEMDEVLEN - 1; i++) {
     blockedPCBs[i] = NULL;
@@ -80,13 +91,13 @@ int main(){
 
   /*set SP to RAMTOP*/
   RAMTOP(first_p->p_s.reg_sp); 
-
+  
   /*PC set to the address of SSI_function_entry_point*/
   ssi_pcb->p_s.pc_epc = (memaddr) SSI_function_entry_point;
 /*henever one assigns a value to the PC one must also assign the
   same value to the general purpose register t9 */
   ssi_pcb->p_s.reg_t9 =  (memaddr) SSI_function_entry_point;
-  
+
   
   set_ramaining_PCBfield(first_p);
 
