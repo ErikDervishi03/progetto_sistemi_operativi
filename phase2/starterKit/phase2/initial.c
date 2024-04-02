@@ -80,7 +80,7 @@ int main(){
 
   /*set SP to RAMTOP*/
   RAMTOP(first_p->p_s.reg_sp); 
- 
+
   /*PC set to the address of SSI_function_entry_point*/
   ssi_pcb->p_s.pc_epc = (memaddr) SSI_function_entry_point;
 /*henever one assigns a value to the PC one must also assign the

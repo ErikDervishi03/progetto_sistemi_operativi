@@ -1,6 +1,4 @@
 #include "dep.h"
-#include <umps3/umps/libumps.h>
-#include <umps3/umps/types.h>
 
 void passupOrDie(int index)
 {

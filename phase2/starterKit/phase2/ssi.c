@@ -1,28 +1,6 @@
 #include "dep.h"
 
-void SSI_function_entry_point(){
-    while (1)
-    {
-        ssi_payload_t payload;
-        SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
-        int service = payload.service_code;
-        void *arg = payload.arg;
-
-        /*SYS2 provides as returning value (placed in caller’s v0 in μMPS3) 
-        the identifier of the process which sent the message extracted*/
-        unsigned int sender = ssi_pcb->p_s.reg_v0;
-
-        void SSIRequest(pcb_t* sender, int service, void* arg);
-
-        // dubbio : ma ha senso mandare la risposta qua?
-        // non dovrebbe essere meglio mandarla in SSIRequest direttamente?
-        // magari in SSIRequest modifichiamo solo arg (il quale sara' la risposta)
-        SYSCALL(SENDMESSAGE, sender, (unsigned int)arg, 0);
-    }    
-  
-}
-
-void SSIRequest(pcb_t* sender, int service, void* arg){
+void SSIRequest(pcb_t* sender, const int service, void* arg){
     switch (service)
     {
     /*CreateProcess*/
@@ -72,7 +50,7 @@ void SSIRequest(pcb_t* sender, int service, void* arg){
         /* Process Count is incremented by one*/
         processCount++;
 
-        arg = (void *)child; // possibile che questo sia sbagliato
+        arg = &child; // possibile che questo sia sbagliato
                              // l'idea era che una volta tornati nel 
                              // SSI_function_entry_point la send mandasse l'arg giusto
 
@@ -82,21 +60,25 @@ void SSIRequest(pcb_t* sender, int service, void* arg){
         break;
     /*DoIO*/
     case 3:
-        blockedPCBs[5 * N_DEV_PER_IL + 0] = sender; // ? 
+    {
+        ssi_do_io_t *do_io = (ssi_do_io_t *)arg;
+        unsigned int *commandAddr = do_io->commandAddr;
+        unsigned int commandValue = do_io->commandValue;
+
+        *commandAddr = commandValue;
+
+        int term0dev = EXT_IL_INDEX(IL_TERMINAL) * N_DEV_PER_IL + 0;
+
+        blockedPCBs[term0dev] = sender;
+
         softBlockCount++;
 
-        devregarea_t *bus_reg_area = (devregarea_t *)BUS_REG_RAM_BASE;
-        devreg_t *devReg = &bus_reg_area->devreg[8 - DEV_IL_START][0];
-
-        ssi_do_io_t *arg = (ssi_do_io_t *)arg;
-        devReg->term.recv_command = arg->commandValue;
-
         // setSTATUS(getSTATUS() | ~getSTATUS()); mette tutti i bit a 1
-
+    }
         break;
     /*GetCPUTime*/
     case 4:
-        arg = (void *)sender->p_time; 
+        arg = &(sender->p_time); 
         break;
     /*WaitForClock*/
     case 5:
@@ -106,11 +88,11 @@ void SSIRequest(pcb_t* sender, int service, void* arg){
         break;
     /*GetSupportData*/
     case 6:
-        arg = (void *)(sender->p_supportStruct);
+        arg = &(sender->p_supportStruct);
         break;
     /*GetProcessID*/
     case 7:
-        arg = (void *)(sender->p_pid);
+        arg = &(sender->p_pid);
         break;   
     default:
         /*Terminate Process*/
@@ -158,5 +140,25 @@ void SSIRequest(pcb_t* sender, int service, void* arg){
         break;
     }
 }
+
+void SSI_function_entry_point(){
+    while (1)
+    {
+        ssi_payload_t payload;
+        unsigned int senderAdd = SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
+        const int service = payload.service_code;
+        void *arg = payload.arg;
+        pcb_t *senderPCB = (pcb_t *)senderAdd;
+        SSIRequest(senderPCB, service, arg);
+
+        // dubbio : ma ha senso mandare la risposta qua?
+        // non dovrebbe essere meglio mandarla in SSIRequest direttamente?
+        // magari in SSIRequest modifichiamo solo arg (il quale sara' la risposta)
+        SYSCALL(SENDMESSAGE, senderAdd, (unsigned int)arg, 0);
+    }    
+  
+}
+
+
 
 
