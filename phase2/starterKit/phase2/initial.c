@@ -69,8 +69,6 @@ int main(){
   mkEmptyProcQ(&ready_queue);
   current_process = NULL; 
   mkEmptyProcQ(&PseudoClockWP);
-  ssi_pcb = allocPcb();
-
 
   for(int i = 0; i < SEMDEVLEN - 1; i++) {
     blockedPCBs[i] = NULL;
@@ -82,9 +80,6 @@ int main(){
 
   /*Instantiate a first process*/
   pcb_t *first_p = allocPcb ();
-  
-  insertProcQ (&ready_queue, first_p);
-  processCount++;
 
   // not sure about this, what status register should be set to?
   first_p->p_s.status =  ALLOFF | IECON | IMON;
@@ -92,21 +87,29 @@ int main(){
   /*set SP to RAMTOP*/
   RAMTOP(first_p->p_s.reg_sp); 
   
+  set_ramaining_PCBfield(first_p);
+
+  insertProcQ (&ready_queue, first_p);
+
+  processCount++;
+
+  /*instantiate ssi_pcb*/
+
+  ssi_pcb = allocPcb();
+
+  ssi_pcb->p_s = ALLOFF | IECON;
+
   /*PC set to the address of SSI_function_entry_point*/
   ssi_pcb->p_s.pc_epc = (memaddr) SSI_function_entry_point;
-/*henever one assigns a value to the PC one must also assign the
+  /*henever one assigns a value to the PC one must also assign the
   same value to the general purpose register t9 */
-  ssi_pcb->p_s.reg_t9 =  (memaddr) SSI_function_entry_point;
+  ssi_pcb->p_s.reg_t9 =  (memaddr) SSI_function_entry_point
 
-  
-  set_ramaining_PCBfield(first_p);
+  set_ramaining_PCBfield(ssi_pcb);
 
   /*instantiate a second process*/
 
   pcb_t *second_p = allocPcb ();
-
-  insertProcQ (&ready_queue, second_p);
-  processCount++;
   
   /*interrupts enabled, the processor Local Timer enabled, kernel-mode on*/
   // not sure about this, what status register should be set to?
@@ -125,6 +128,10 @@ int main(){
   second_p->p_s.reg_t9 = (memaddr) test;
 
   set_ramaining_PCBfield(second_p);
+
+  insertProcQ (&ready_queue, second_p);
+  
+  processCount++;
 
   scheduler (); 
 
