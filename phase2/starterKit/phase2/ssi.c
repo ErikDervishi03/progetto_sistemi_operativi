@@ -84,7 +84,15 @@ void SSIRequest(pcb_t* sender, const int service, void* arg){
         break;
     /*GetProcessID*/
     case 7:
-        arg = &(sender->p_pid);
+        if((*(int *)arg) == 0){
+            arg = &(sender->p_pid);
+        }
+        else if(sender->p_parent != NULL){
+            arg = &(sender->p_parent->p_pid);
+        }
+        else{
+            arg = 0;
+        }
         break;   
     default:
         /*Terminate Process*/

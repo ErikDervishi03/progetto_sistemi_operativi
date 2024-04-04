@@ -1,4 +1,6 @@
+#include "const.h"
 #include "dep.h"
+#include <umps3/umps/libumps.h>
 
 /*
 A device or timer interrupt occurs when:
@@ -94,6 +96,7 @@ int getHighestPriorityNTint(){
   return -1;
 }
 
+
 void handleNonTimer(){
 
   /*Calculate the address for this device’s device register [Section 5.1-pops]:
@@ -130,13 +133,11 @@ void handleNonTimer(){
   quested the status response via a SYS2 operation.
   Important: Use of SYSCALL is discourage because both use BIOSDATAPAGE*/
 
-  pcb_t *waitingProcess = blockedPCBs[(intlineNo - 2) * N_DEV_PER_IL + devNo]; 
-
-  waitingProcess->p_s.reg_a3 = devAddrBase;
+  pcb_t *waitingProcess = blockedPCBs[(intlineNo - DEV_IL_START) * N_DEV_PER_IL + devNo]; 
   
   if(waitingProcess != NULL){
     /*Place the stored off status code in the newly unblocked PCB’s v0 register*/
-
+    waitingProcess->p_s.reg_v0 = status;
     /*Insert the newly unblocked PCB on the Ready Queue, transitioning this process from the
     “blocked” state to the “ready” state*/
     insertProcQ(&ready_queue, waitingProcess);
@@ -145,13 +146,13 @@ void handleNonTimer(){
   }
 
   if(current_process == NULL)
-    WAIT();
-
-  LDST((state_t *)BIOSDATAPAGE);
+    scheduler();
+  else
+    LDST((state_t *)BIOSDATAPAGE);
 }
 
 void interruptHandler() {
-
+  PANIC();
   startInterrupt();
 
   if (getCAUSE() & LOCALTIMERINT){

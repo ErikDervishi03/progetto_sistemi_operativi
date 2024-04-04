@@ -1,7 +1,8 @@
+#include "const.h"
 #include "dep.h"
 #include <umps3/umps/libumps.h>
 
-cpu_t prevTOD=0;
+cpu_t prevTOD;
 unsigned int processCount, softBlockCount;
 pcb_t *ssi_pcb;
 
@@ -82,7 +83,7 @@ int main(){
   pcb_t *first_p = allocPcb ();
 
   // not sure about this, what status register should be set to?
-  first_p->p_s.status =  ALLOFF | IECON | IMON;
+  first_p->p_s.status =  ALLOFF | IECON | IEPON;
 
   /*set SP to RAMTOP*/
   RAMTOP(first_p->p_s.reg_sp); 
@@ -97,13 +98,13 @@ int main(){
 
   ssi_pcb = allocPcb();
 
-  ssi_pcb->p_s = ALLOFF | IECON;
+  ssi_pcb->p_s.status = ALLOFF | IEPON;
 
   /*PC set to the address of SSI_function_entry_point*/
   ssi_pcb->p_s.pc_epc = (memaddr) SSI_function_entry_point;
   /*henever one assigns a value to the PC one must also assign the
   same value to the general purpose register t9 */
-  ssi_pcb->p_s.reg_t9 =  (memaddr) SSI_function_entry_point
+  ssi_pcb->p_s.reg_t9 =  (memaddr) SSI_function_entry_point;
 
   set_ramaining_PCBfield(ssi_pcb);
 
@@ -113,7 +114,7 @@ int main(){
   
   /*interrupts enabled, the processor Local Timer enabled, kernel-mode on*/
   // not sure about this, what status register should be set to?
-  second_p->p_s.status = ALLOFF | IECON | IMON | TEBITON;
+  second_p->p_s.status = ALLOFF | IECON | IEPON | TEBITON;
 
   /* SP set to RAMTOP - (2 * FRAMESIZE) (i.e.
     use the last RAM frame for its stack minus 
