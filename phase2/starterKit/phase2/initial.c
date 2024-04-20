@@ -83,7 +83,7 @@ int main(){
   pcb_t *first_p = allocPcb ();
 
   // not sure about this, what status register should be set to?
-  first_p->p_s.status =  ALLOFF | IECON | IEPON;
+  first_p->p_s.status = ALLOFF | IECON | IEPON;
 
   /*set SP to RAMTOP*/
   RAMTOP(first_p->p_s.reg_sp); 
@@ -93,20 +93,6 @@ int main(){
   insertProcQ (&ready_queue, first_p);
 
   processCount++;
-
-  /*instantiate ssi_pcb*/
-
-  ssi_pcb = allocPcb();
-
-  ssi_pcb->p_s.status = ALLOFF | IEPON;
-
-  /*PC set to the address of SSI_function_entry_point*/
-  ssi_pcb->p_s.pc_epc = (memaddr) SSI_function_entry_point;
-  /*henever one assigns a value to the PC one must also assign the
-  same value to the general purpose register t9 */
-  ssi_pcb->p_s.reg_t9 =  (memaddr) SSI_function_entry_point;
-
-  set_ramaining_PCBfield(ssi_pcb);
 
   /*instantiate a second process*/
 
@@ -134,7 +120,21 @@ int main(){
   
   processCount++;
 
-  scheduler (); 
+  /*instantiate ssi_pcb*/
+
+  ssi_pcb = allocPcb();
+
+  ssi_pcb->p_s.status = ALLOFF | IEPON;
+
+  /*PC set to the address of SSI_function_entry_point*/
+  ssi_pcb->p_s.pc_epc = (memaddr) SSI_function_entry_point;
+  /*henever one assigns a value to the PC one must also assign the
+  same value to the general purpose register t9 */
+  ssi_pcb->p_s.reg_t9 =  (memaddr) SSI_function_entry_point;
+
+  set_ramaining_PCBfield(ssi_pcb);
+  
+  test (); 
 
   return 0;
 

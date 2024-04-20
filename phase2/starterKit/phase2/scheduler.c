@@ -1,11 +1,12 @@
+#include "const.h"
 #include "dep.h"
 #include <umps3/umps/libumps.h>
+#include <umps3/umps/types.h>
 
+int counter = 0;
 void scheduler(){
-    pcb_t* readyproc = removeProcQ(&ready_queue);
-
-    if(readyproc != NULL){
-        current_process = readyproc;
+    pcb_t* current_process = removeProcQ(&ready_queue);
+    if(current_process != NULL){
         current_process->p_time += getTimeElapsed();
         current_process->p_s.status |= TEBITON;
         setTIMER(TIMESLICE);

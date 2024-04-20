@@ -173,27 +173,26 @@ pcb_t *create_process(state_t *s)
 void test()
 {
     test_pcb = current_process;
-
     // test send and receive
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
     pcb_PTR sender = (pcb_PTR)SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, 0, 0);
-
+    
     if (sender != test_pcb)
         PANIC();
-
+    
     // init print process
     STST(&printstate);
     printstate.reg_sp = printstate.reg_sp - QPAGE;
     printstate.pc_epc = (memaddr)print;
     printstate.status |= IEPBITON | CAUSEINTMASK | TEBITON;
-
+    
     // create print process
     print_pcb = create_process(&printstate);
-
+    
     if ((int)print_pcb == NOPROC)
         PANIC();
-
-    // test print process
+    
+    // test print process   
     print_term0("Don't Panic.\n");
 
     /* set up states of the other processes */

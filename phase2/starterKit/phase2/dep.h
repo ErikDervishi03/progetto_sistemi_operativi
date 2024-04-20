@@ -10,6 +10,8 @@
 extern cpu_t prevTOD;
 extern unsigned int processCount, softBlockCount;
 
+extern pcb_t* prova;
+
 extern struct list_head ready_queue;
 extern pcb_t *current_process;
 

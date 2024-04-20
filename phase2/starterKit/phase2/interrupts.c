@@ -34,7 +34,6 @@ void endInterrupt ()
 
 
 void handlePLT(){
-
   /*here we are loading the timer with a new value to acknowledge the PLT interrupt */
   current_process->p_time += getTimeElapsed ();
 
@@ -55,6 +54,7 @@ void handlePLT(){
 }
 
 void handleIntervalTimer(){
+  
   /*Acknowledge the interrupt by loading the Interval Timer with a new value: 100 milliseconds
   (constant PSECOND)*/
   LDIT(PSECOND);
@@ -98,7 +98,7 @@ int getHighestPriorityNTint(){
 
 
 void handleNonTimer(){
-
+  
   /*Calculate the address for this device’s device register [Section 5.1-pops]:
   devAddrBase = 0x10000054 + ((IntlineNo - 3) * 0x80) + (DevNo * 0x10)
   Tip: to calculate the device number you can use a switch among constants DEVxON */
