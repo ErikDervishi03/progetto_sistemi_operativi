@@ -84,9 +84,8 @@ void systemcallHandler() {
                 msg_t* message = popMessage(&current_process->msg_inbox, p_grantor);
 
                 if(message == NULL){
+                    
                     scheduler();
-                    // not sure, want to start the loop
-                    SYSCALL(RECEIVEMESSAGE, current_process->p_s.reg_a1, current_process->p_s.reg_a2, 0);
                 }else {
                     /*This system call provides as returning value (placed in caller’s 
                     v0 in μMPS3) the identifier of the process which sent the message extracted*/

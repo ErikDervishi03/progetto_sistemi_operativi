@@ -6,6 +6,7 @@
 #include "const.h"
 #include "headers/pcb.h"
 #include "headers/msg.h"
+#include "debug.h"
 
 extern cpu_t prevTOD;
 extern unsigned int processCount, softBlockCount;

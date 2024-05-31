@@ -80,27 +80,32 @@ int main(){
   LDIT(PSECOND);
 
   /*Instantiate a first process*/
-  pcb_t *first_p = allocPcb ();
+  /*instantiate ssi_pcb*/
 
-  // not sure about this, what status register should be set to?
-  first_p->p_s.status = ALLOFF | IECON | IEPON;
+  ssi_pcb = allocPcb();
 
-  /*set SP to RAMTOP*/
-  RAMTOP(first_p->p_s.reg_sp); 
-  
-  set_ramaining_PCBfield(first_p);
+  ssi_pcb->p_s.status = ALLOFF | IEPON | IMON | TEBITON;
 
-  insertProcQ (&ready_queue, first_p);
+  RAMTOP(ssi_pcb->p_s.reg_sp);
+  /*PC set to the address of SSI_function_entry_point*/
+  ssi_pcb->p_s.pc_epc = (memaddr) SSI_function_entry_point;
+  /*henever one assigns a value to the PC one must also assign the
+  same value to the general purpose register t9 */
+  ssi_pcb->p_s.reg_t9 =  (memaddr) SSI_function_entry_point;
 
-  processCount++;
+  set_ramaining_PCBfield(ssi_pcb);
+
+  ssi_pcb->p_pid = 1;
+
+  insertProcQ(&ready_queue, ssi_pcb);
 
   /*instantiate a second process*/
 
-  pcb_t *second_p = allocPcb ();
+  pcb_t *entryTest = allocPcb ();
   
   /*interrupts enabled, the processor Local Timer enabled, kernel-mode on*/
   // not sure about this, what status register should be set to?
-  second_p->p_s.status = ALLOFF | IECON | IEPON | TEBITON;
+  entryTest->p_s.status = ALLOFF | IECON | IEPON | TEBITON;
 
   /* SP set to RAMTOP - (2 * FRAMESIZE) (i.e.
     use the last RAM frame for its stack minus 
@@ -109,32 +114,20 @@ int main(){
 
   RAMTOP(ramTop);
 
-  second_p->p_s.reg_sp = ramTop - (2 * PAGESIZE);
+  entryTest->p_s.reg_sp = ramTop - (2 * PAGESIZE);
 
-  second_p->p_s.pc_epc = (memaddr) test;
-  second_p->p_s.reg_t9 = (memaddr) test;
+  entryTest->p_s.pc_epc = (memaddr) test;
+  entryTest->p_s.reg_t9 = (memaddr) test;
 
-  set_ramaining_PCBfield(second_p);
+  set_ramaining_PCBfield(entryTest);
 
-  insertProcQ (&ready_queue, second_p);
+  entryTest->p_pid = 2;
+
+  insertProcQ (&ready_queue, entryTest);
   
   processCount++;
-
-  /*instantiate ssi_pcb*/
-
-  ssi_pcb = allocPcb();
-
-  ssi_pcb->p_s.status = ALLOFF | IEPON;
-
-  /*PC set to the address of SSI_function_entry_point*/
-  ssi_pcb->p_s.pc_epc = (memaddr) SSI_function_entry_point;
-  /*henever one assigns a value to the PC one must also assign the
-  same value to the general purpose register t9 */
-  ssi_pcb->p_s.reg_t9 =  (memaddr) SSI_function_entry_point;
-
-  set_ramaining_PCBfield(ssi_pcb);
   
-  test (); 
+  scheduler (); 
 
   return 0;
 

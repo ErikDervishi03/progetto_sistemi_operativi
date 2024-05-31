@@ -15,6 +15,7 @@
  *          Modified by Luca Bassi, Gabriele Genovese on November 30, 2023
  */
 #include "dep.h"
+#include <umps3/umps/libumps.h>
 
 typedef unsigned int devregtr;
 
@@ -172,6 +173,7 @@ pcb_t *create_process(state_t *s)
 /*********************************************************************/
 void test()
 {
+    PANIC();
     test_pcb = current_process;
     // test send and receive
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);

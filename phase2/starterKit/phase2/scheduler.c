@@ -1,29 +1,35 @@
 #include "const.h"
 #include "dep.h"
+#include "headers/pcb.h"
+#include <umps3/umps/const.h>
 #include <umps3/umps/libumps.h>
 #include <umps3/umps/types.h>
 
-int counter = 0;
 void scheduler(){
-    pcb_t* current_process = removeProcQ(&ready_queue);
-    if(current_process != NULL){
+    current_process = removeProcQ(&ready_queue);
+
+    if(current_process){
         current_process->p_time += getTimeElapsed();
-        current_process->p_s.status |= TEBITON;
+        
         setTIMER(TIMESLICE);
+
         LDST(&current_process->p_s);
     }
     else{
-        if(processCount == 1 && current_process == ssi_pcb){
+        if(processCount == 1) {
             HALT();
         }
-        else if(processCount > 1 && softBlockCount > 0){
-            setSTATUS((getSTATUS() | IECON | IMON) & ~TEBITON);
+        else if(processCount > 0 && softBlockCount > 0 ){
+            current_process = NULL;
+            setSTATUS(ALLOFF | IECON | IMON);
             WAIT();
         }
-        else if (processCount > 0 && softBlockCount == 0){
+        else if(processCount > 0 && softBlockCount == 0){
             PANIC();
         }
     }
 }
+
+
 
 
