@@ -6,6 +6,7 @@
 #include <umps3/umps/types.h>
 
 void scheduler(){
+    term_puts("entrato in scheduler\n");
     current_process = removeProcQ(&ready_queue);
 
     if(current_process){
@@ -13,6 +14,9 @@ void scheduler(){
         
         setTIMER(TIMESLICE);
 
+        term_puts("passo il controllo a current process\n");
+
+        if(current_process == print_pcb) term_puts("current_process == print_pcb\n");
         LDST(&current_process->p_s);
     }
     else{
@@ -25,6 +29,7 @@ void scheduler(){
             WAIT();
         }
         else if(processCount > 0 && softBlockCount == 0){
+            term_puts("vado in panic nello scheduler\n");
             PANIC();
         }
     }

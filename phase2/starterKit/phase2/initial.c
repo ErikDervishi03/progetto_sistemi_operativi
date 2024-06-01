@@ -9,7 +9,7 @@ pcb_t *ssi_pcb;
 struct list_head ready_queue;
 pcb_t *current_process;
 
-pcb_PTR blockedPCBs[SEMDEVLEN - 1];
+struct list_head blockedPCBs[SEMDEVLEN - 1];
 struct list_head PseudoClockWP; // pseudo-clock waiting process
 
 extern void test ();
@@ -40,21 +40,10 @@ cpu_t getTimeElapsed () {
   return getTimeElapsed;
 }
 
-
-void set_ramaining_PCBfield(pcb_t *p) {
-  /*Set all the Process Tree fields to NULL*/
-  p->p_parent = NULL;
-  mkEmptyProcQ(&p->p_child);
-  mkEmptyProcQ(&p->p_sib);
-
-  /*Set the accumulated time field (p_time) to zero*/
-  p->p_time = 0;
-
-  /*Set the Support Structure pointer (p_supportStruct) to NULL*/
-  p->p_supportStruct = NULL;
-}
-
 int main(){
+
+  term_puts("entrato in initial\n");
+ 
   passupvector_t *passupvector = (passupvector_t *) PASSUPVECTOR;
   passupvector->tlb_refill_handler = (memaddr) uTLB_RefillHandler;
   passupvector->tlb_refill_stackPtr = (memaddr) KERNELSTACK;
@@ -72,7 +61,7 @@ int main(){
   mkEmptyProcQ(&PseudoClockWP);
 
   for(int i = 0; i < SEMDEVLEN - 1; i++) {
-    blockedPCBs[i] = NULL;
+    INIT_LIST_HEAD(&blockedPCBs[i]);
   }
   
   /*Load the system-wide Interval Timer with 100 
@@ -92,10 +81,6 @@ int main(){
   /*henever one assigns a value to the PC one must also assign the
   same value to the general purpose register t9 */
   ssi_pcb->p_s.reg_t9 =  (memaddr) SSI_function_entry_point;
-
-  set_ramaining_PCBfield(ssi_pcb);
-
-  ssi_pcb->p_pid = 1;
 
   insertProcQ(&ready_queue, ssi_pcb);
 
@@ -119,13 +104,9 @@ int main(){
   entryTest->p_s.pc_epc = (memaddr) test;
   entryTest->p_s.reg_t9 = (memaddr) test;
 
-  set_ramaining_PCBfield(entryTest);
-
-  entryTest->p_pid = 2;
-
   insertProcQ (&ready_queue, entryTest);
   
-  processCount++;
+  processCount = 2;
   
   scheduler (); 
 

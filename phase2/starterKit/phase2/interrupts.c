@@ -133,7 +133,7 @@ void handleNonTimer(){
   quested the status response via a SYS2 operation.
   Important: Use of SYSCALL is discourage because both use BIOSDATAPAGE*/
 
-  pcb_t *waitingProcess = blockedPCBs[(intlineNo - DEV_IL_START) * N_DEV_PER_IL + devNo]; 
+  pcb_t *waitingProcess = NULL;//blockedPCBs[(intlineNo - DEV_IL_START) * N_DEV_PER_IL + devNo]; 
   
   if(waitingProcess != NULL){
     /*Place the stored off status code in the newly unblocked PCB’s v0 register*/
@@ -152,7 +152,9 @@ void handleNonTimer(){
 }
 
 void interruptHandler() {
-  PANIC();
+
+  term_puts("dentro l'interrupt handler\n");
+
   startInterrupt();
 
   if (getCAUSE() & LOCALTIMERINT){

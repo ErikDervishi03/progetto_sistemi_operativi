@@ -1,11 +1,38 @@
 #include "dep.h"
 
+void termProcess(pcb_t *sender) {
+  if (sender == NULL) {
+    return;
+  }
+  outChild(sender);
+
+  pcb_PTR child = NULL;
+  while ((child = removeChild(sender)) != NULL) {
+    termProcess(child);
+  }
+
+  pcb_PTR removedProc = outProcQ(&ready_queue, sender);
+
+  if (outProcQ(&PseudoClockWP, sender) != NULL) {
+    softBlockCount--;
+  } else if (removedProc == NULL) {
+    for (int i = 0; i < SEMDEVLEN - 1; i++) {
+      if (outProcQ(&blockedPCBs[i], sender) != NULL) {
+        softBlockCount--;
+        break;
+      }
+    }
+  }
+}
+
 void SSIRequest(pcb_t* sender, const int service, void* arg){
+    
     switch (service)
     {
     /*CreateProcess*/
     case 1:
         {
+        term_puts("entro in  create process\n");
         /*If the new process cannot be created due to lack of resources (e.g.
         no more free PBCs), an error code of -1 (constant NOPROC) will be returned*/
         if(emptyProcQ(&pcbFree_h)){
@@ -45,9 +72,9 @@ void SSIRequest(pcb_t* sender, const int service, void* arg){
         arg = &child; // possibile che questo sia sbagliato
                              // l'idea era che una volta tornati nel 
                              // SSI_function_entry_point la send mandasse l'arg giusto
-
+        
         /* control is returned to the Current Process*/
-        LDST(&current_process->p_s);
+        //LDST(&current_process->p_s);    
         }
         break;
     /*DoIO*/
@@ -61,7 +88,7 @@ void SSIRequest(pcb_t* sender, const int service, void* arg){
 
         int term0dev = EXT_IL_INDEX(IL_TERMINAL) * N_DEV_PER_IL + 0;
 
-        blockedPCBs[term0dev] = sender;
+        //blockedPCBs[term0dev] = sender;
 
         softBlockCount++;
 
@@ -100,42 +127,13 @@ void SSIRequest(pcb_t* sender, const int service, void* arg){
          If service does not match any of those provided by the SSI,
          the SSI should terminate the process and its progeny TO DO*/
         {
-        /*The root of the sub-tree of terminated processes must be “orphaned” from its parents; its parent
-        can no longer have this PCB as one of its progeny (outChild)*/
-        outChild(sender);
-
-        int blocked = FALSE;
-        /*If the process is blocked waiting for a device should be unblocked*/
-        for (int i = 0; i < SEMDEVLEN - 1; i++)
-        {
-            if(blockedPCBs[i] == sender){
-                blocked = TRUE;
-                blockedPCBs[i] = NULL;
-                // break; se un processo puo' aspettare al max un device 
-                // allora possiamo fare break
+            /*This service terminates the sender process if arg is NULL. Otherwise,
+             arg should be a pcb_t pointer*/
+            if(arg == NULL){
+                termProcess(sender);
+            }else{
+                termProcess((pcb_t*)arg);
             }
-        }
-        
-        /*If a terminated process is waiting for clock, the value 
-        used to track this should be adjusted accordingly*/
-        if(outProcQ(&PseudoClockWP, sender)){
-            blocked = TRUE;
-        }
-        /*The process count and soft-blocked variables
-         need to be adjusted accordingly*/
-        processCount--;
-
-        if(blocked){
-            softBlockCount--;
-        }
-
-        /*Processes (i.e. PCB’s) can’t hide. A PCB is either the Current Process (“running”), sitting
-        on the Ready Queue (“ready”), blocked waiting for device (“blocked”), or blocked waiting for
-        non-device (“blocked”)*/
-
-        outProcQ(&ready_queue, sender);
-
-        arg = NULL;
         }
         break;
     }
@@ -154,11 +152,11 @@ void SSI_function_entry_point(){
         // dubbio : ma ha senso mandare la risposta qua?
         // non dovrebbe essere meglio mandarla in SSIRequest direttamente?
         // magari in SSIRequest modifichiamo solo arg (il quale sara' la risposta)
+        
         SYSCALL(SENDMESSAGE, senderAdd, (unsigned int)arg, 0);
     }    
   
 }
-
 
 
 

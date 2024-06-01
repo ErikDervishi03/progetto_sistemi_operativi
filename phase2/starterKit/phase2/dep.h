@@ -16,7 +16,7 @@ extern pcb_t* prova;
 extern struct list_head ready_queue;
 extern pcb_t *current_process;
 
-extern pcb_PTR blockedPCBs[SEMDEVLEN - 1];
+extern struct list_head blockedPCBs[SEMDEVLEN - 1];
 extern struct list_head PseudoClockWP; // pseudo-clock waiting process
 
 extern pcb_t *ssi_pcb;
@@ -38,3 +38,5 @@ extern void exceptionHandler ();
 extern void SSI_function_entry_point ();
 
 extern cpu_t getTimeElapsed ();
+
+extern pcb_PTR print_pcb;

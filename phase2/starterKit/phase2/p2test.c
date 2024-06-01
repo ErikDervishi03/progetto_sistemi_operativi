@@ -92,6 +92,8 @@ ssi_payload_t p4_payload = {
 /* a procedure to print on terminal 0 */
 void print()
 {
+    term_puts("entrato in print\n");
+
     while (1)
     {
         char *msg;
@@ -173,7 +175,8 @@ pcb_t *create_process(state_t *s)
 /*********************************************************************/
 void test()
 {
-    PANIC();
+    term_puts("entrato in test\n");
+
     test_pcb = current_process;
     // test send and receive
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
@@ -187,14 +190,17 @@ void test()
     printstate.reg_sp = printstate.reg_sp - QPAGE;
     printstate.pc_epc = (memaddr)print;
     printstate.status |= IEPBITON | CAUSEINTMASK | TEBITON;
-    
+
+    term_puts("prima di creare il processo\n");
     // create print process
     print_pcb = create_process(&printstate);
-    
+    term_puts("dopo di creare il processo\n");
+
     if ((int)print_pcb == NOPROC)
         PANIC();
     
     // test print process   
+    
     print_term0("Don't Panic.\n");
 
     /* set up states of the other processes */

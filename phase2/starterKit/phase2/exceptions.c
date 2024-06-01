@@ -5,7 +5,7 @@
 
 void passupOrDie(int index)
 {
-    if (current_process->p_supportStruct == NULL)
+    if (current_process == NULL || current_process->p_supportStruct == NULL )
     {
         terminate_process(current_process);
         scheduler ();
@@ -21,93 +21,98 @@ void passupOrDie(int index)
 
 }
 
-static int isProcessInList(pcb_t *process, struct list_head *list) {
-    struct list_head *pos;
+static int isProcessInList(pcb_t* p, struct list_head *list) {
     pcb_t *current;
-    list_for_each(pos, list) {
-        current = container_of(pos, pcb_t, p_list);
-        if (current == process) {
-            return 1;
-        }
+    list_for_each_entry(current, list, p_list){
+        if(p == current)
+            return 1; 
     }
+    return 0;    
+}
+
+int send(pcb_t *sender, pcb_t *dest, unsigned int payload) {
+    msg_t *msg = allocMsg();
+    if(!msg) //non ci sono più messaggi disponibili
+        return MSGNOGOOD;
+
+    msg->m_sender = sender;
+    msg->m_payload = payload;
+    insertMessage(&(dest->msg_inbox), msg); 
     return 0;
 }
 
 void systemcallHandler() {
-    
-    // Controllo se la chiamata di sistema è stata eseguita in modalità utente
-    if ((getSTATUS() & USERPON) != 0) {
-        setCAUSE ((getCAUSE () & ~CAUSE_EXCCODE_MASK) | (EXC_RI << CAUSE_EXCCODE_BIT));
-        passupOrDie(GENERALEXCEPT);
+    //term_puts("dentro syscall handler\n");
+    state_t *exception_state = (state_t *)BIOSDATAPAGE;
+    if((exception_state->status << 30) >> 31) { //controllo che il processo non sia in kernel-mode
+      //scrivo come codice dell'eccezione il valore EXC_RI e invoco il Pass Up or Die
+      exception_state->cause = (exception_state->cause & CLEAREXECCODE) | (EXC_RI << CAUSESHIFT);
+      passupOrDie(GENERALEXCEPT);
     }
-    
-    ((state_t *)BIOSDATAPAGE)->pc_epc += WORD_SIZE; // Incremento del PC per chiamate di sistema non bloccanti
+    else {
+        //SYS1  
+        if(exception_state->reg_a0 == SENDMESSAGE) {
+            int nogood;     //valore di ritorno da inserire in reg_v0
+            int ready;      //se uguale a 1 il destinatario è nella ready queue, 0 altrimenti
+            int not_exists; //se uguale a 1 il destinatario è nella lista pcbFree_h
+            pcb_t *dest = (pcb_t *)(exception_state->reg_a1);
+            ready = isProcessInList(dest, &ready_queue);
+            not_exists = isProcessInList(dest, &pcbFree_h);
 
-    switch (current_process->p_s.reg_a0) {
-        case SENDMESSAGE:
-            if(current_process == NULL)break;
-
-            if (isProcessInList(current_process, &pcbFree_h)){
-                //If the target process is in the pcbFree_h list, 
-                //set the return register (v0 in μMPS3) to DEST_NOT_EXIST
-                current_process->p_s.reg_v0 = DEST_NOT_EXIST;
+            if(not_exists) {
+                exception_state->reg_v0 = DEST_NOT_EXIST;  
             }
-            else{
-                pcb_t * destination = (pcb_t *)current_process->p_s.reg_a1;
-                if(destination == NULL){
-                    current_process->p_s.reg_v0 = MSGNOGOOD;
-                    break;
-                }
-
-                unsigned int payload = current_process->p_s.reg_a2;
-                msg_t *message = allocMsg();
-                if(message == NULL){
-                    current_process->p_s.reg_v0 = MSGNOGOOD;
-                    break;
-                }
-
-                mkEmptyMessageQ(&message->m_list);//non sicuro di questo
-                message->m_payload = payload;
-                message->m_sender = current_process;
-
-                insertMessage(&destination->msg_inbox, message);
-
-                //n success returns/places 0 in the caller’s v0
-                current_process->p_s.reg_v0 = 0;
+            else if(ready || dest == current_process) {
+                nogood = send(current_process, dest, exception_state->reg_a2);
+                exception_state->reg_v0 = nogood;
             }
+            else {
+                nogood = send(current_process, dest, exception_state->reg_a2);
+                insertProcQ(&ready_queue, dest);   //il processo era bloccato quindi lo inserisco sulla ready queue
+                exception_state->reg_v0 = nogood;
+            }
+
+            exception_state->pc_epc += WORDLEN; //non bloccante
+            LDST(exception_state);
+        }
+        //SYS2
+        else if(exception_state->reg_a0 == RECEIVEMESSAGE) {
+            struct list_head *msg_inbox = &(current_process->msg_inbox);                        //inbox del ricevente
+            unsigned int from = exception_state->reg_a1;                                        //da chi voglio ricevere
+            msg_t *msg = popMessage(msg_inbox, (from == ANYMESSAGE ? NULL : (pcb_t *)(from)));  //rimozione messaggio dalla inbox del ricevente
             
-        break;
-        case RECEIVEMESSAGE:
-            {
-                pcb_t *p_grantor = (current_process->p_s.reg_a1 == ANYMESSAGE) ? NULL : (pcb_t *)current_process->p_s.reg_a1;
-
-                msg_t* message = popMessage(&current_process->msg_inbox, p_grantor);
-
-                if(message == NULL){
-                    
-                    scheduler();
-                }else {
-                    /*This system call provides as returning value (placed in caller’s 
-                    v0 in μMPS3) the identifier of the process which sent the message extracted*/
-                    current_process->p_s.reg_v0 = message->m_sender->p_pid;
-
-                    current_process->p_s.reg_a2 = message->m_payload;
-                }
+            if(!msg) { 
+                //receive bloccante
+                current_process->p_s = *exception_state;
+                current_process->p_time += getTimeElapsed();
+                term_puts("receive bloccante chiamo lo scheduler\n");
+                scheduler();       
             }
-            break;
-        default:
-            // Genera un'eccezione Program Trap per chiamate di sistema sconosciute
-            setCAUSE((getCAUSE() & ~CAUSE_EXCCODE_MASK) | (EXC_RI << CAUSE_EXCCODE_BIT));
+            else {
+                //receive non bloccante
+                exception_state->reg_v0 = (memaddr)(msg->m_sender);
+                if(msg->m_payload != (unsigned int)NULL) {
+                    //accedo all'area di memoria in cui andare a caricare il payload del messaggio
+                    unsigned int *a2 = (unsigned int *)exception_state->reg_a2;
+                    *a2 = msg->m_payload;
+                }
+                freeMsg(msg); //il messaggio non serve più, lo libero
+                exception_state->pc_epc += WORDLEN; //non bloccante
+                LDST(exception_state);
+            }
+        }
+        //valore registro a0 non corretto
+        else if(exception_state->reg_a0 >= 1) {
             passupOrDie(GENERALEXCEPT);
+        }
     }
-    
-    // Restituisce il controllo al processo interrotto
-    LDST((state_t*)BIOSDATAPAGE);
 }
 
 
 void exceptionHandler ()
 {
+    //term_puts("dentro l'exception handler\n");
+
     switch (CAUSE_GET_EXCCODE (getCAUSE ()))
     {
     case 0:

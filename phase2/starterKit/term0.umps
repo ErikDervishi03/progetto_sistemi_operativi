@@ -1,1 +1,16 @@
-ciao
+entrato in initial
+entrato in scheduler
+passo il controllo a current process
+receive bloccante chiamo lo scheduler
+entrato in scheduler
+passo il controllo a current process
+entrato in test
+prima di creare il processo
+receive bloccante chiamo lo scheduler
+entrato in scheduler
+passo il controllo a current process
+dentro l'interrupt handler
+receive bloccante chiamo lo scheduler
+entrato in scheduler
+vado in panic nello scheduler
+kernel panic()
