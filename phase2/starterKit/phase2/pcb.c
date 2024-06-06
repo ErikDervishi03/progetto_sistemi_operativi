@@ -158,16 +158,3 @@ pcb_t *outChild(pcb_t *p) {
         return NULL;
     }
 }
-
-int isInList(struct list_head *target_process, int pid) {
-  pcb_PTR tmp;
-  list_for_each_entry(tmp, target_process, p_list) {
-    if (tmp->p_pid == pid)
-      return TRUE;
-  }
-  return FALSE;
-}
-
-int isFree(int p_pid){
-    return isInList(&pcbFree_h, p_pid);
-}

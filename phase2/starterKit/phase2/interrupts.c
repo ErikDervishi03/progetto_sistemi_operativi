@@ -32,61 +32,48 @@ void endInterrupt ()
     scheduler ();
 }
 
-void handlePLT() {
-  /* - Acknowledge the PLT interrupt by loading the timer with a new valu
-      [Section 4.1.4-pops].
-    - Copy into the Current Process’s PCB (p_s).
-    - Place the
-     Current Process on the Ready Queue; transitioning the Current Process from
-     the “running” state to the “ready” state.
-    - Call the Scheduler.
-  */
-  setTIMER(TIMESLICE);
-  state_t *exception_state = (state_t *)BIOSDATAPAGE;
 
-  if (current_process != NULL) {
-    copyState(exception_state, &current_process->p_s);
-    // ! WARNING: process already running
-    insertProcQ(&ready_queue, current_process);
-    
-    // decrement the time that takes to the process to be interrupted
-    current_process->p_time -= deltaInterruptTime();
-  }
-  scheduler();
+void handlePLT(){
+  /*here we are loading the timer with a new value to acknowledge the PLT interrupt */
+  current_process->p_time += getTimeElapsed ();
+
+  /*Copy the processor state at the time of the exception (located at the start of the BIOS Data
+  Page [Section 3.2.2-pops]) into the Current Process’s PCB (p_s)*/
+
+  state_t *p_state = (state_t *)BIOSDATAPAGE;
+  current_process->p_s = *p_state;
+  
+  /*Place the Current Process on the Ready Queue; transitioning the Current Process from the
+  “running” state to the “ready” state*/
+  insertProcQ(&ready_queue, current_process);
+  current_process = NULL;
+
+  /*Call the Scheduler*/
+  scheduler ();
+
 }
 
-void handleIntervalTimer() {
-  /*
-    The Interval Timer portion of the interrupt exception handler should
-    therefore:
-      1. Acknowledge the interrupt by loading the Interval Timer with a new
-    value: 100 milliseconds (constant PSECOND) [Section 4.1.3-pops].
-      2. Unblock all PCBs blocked waiting a Pseudo-clock tick.
-      3. Return control to the Current Process: perform a LDST on the saved
-    exception state (located at the start of the BIOS Data Page [Section 4]).
-  */
+void handleIntervalTimer(){
+  
+  /*Acknowledge the interrupt by loading the Interval Timer with a new value: 100 milliseconds
+  (constant PSECOND)*/
   LDIT(PSECOND);
-  pcb_PTR pcb = NULL;
-  while ((pcb = removeProcQ(&PseudoClockWP)) !=
-         NULL) { 
-    // unlock process - SYS2
-    insertProcQ(&ready_queue, pcb);
 
-    msg_PTR msg = allocMsg();
-    msg->m_sender = ssi_pcb;
-    msg->m_payload = 0;
-    insertMessage(&pcb->msg_inbox, msg);
-    softBlockCount--;
+  struct list_head* iter;
+
+  /*Unblock all PCBs blocked waiting a Pseudo-clock tick*/
+  list_for_each(iter,&PseudoClockWP) {
+    pcb_t* item = container_of(iter,pcb_t,p_list);
+
+    insertProcQ(&ready_queue, item);
+
+    list_del(iter);
+
+    softBlockCount--;// ?
   }
 
-  if (current_process == NULL) {
-    scheduler();
-    return;
-  }
-
-  // decrement the time that takes to the process to be interrupted
-  current_process->p_time -= deltaInterruptTime();
-
+  /*Return control to the Current Process: perform a LDST on the saved exception state (located at
+  the start of the BIOS Data Page*/
   LDST((state_t *)BIOSDATAPAGE);
 }
 
@@ -184,8 +171,3 @@ void interruptHandler() {
   endInterrupt();
 }
 
-cpu_t deltaInterruptTime(){
-  cpu_t current_time;
-  STCK(current_time);
-  return current_time - time_interrupt_start;
-}

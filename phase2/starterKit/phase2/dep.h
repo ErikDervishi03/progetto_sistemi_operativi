@@ -8,15 +8,12 @@
 #include "headers/msg.h"
 #include "debug.h"
 
-
-#define SSIPID 0xFFFFFFFE 
 extern cpu_t prevTOD;
 extern unsigned int processCount, softBlockCount;
-extern cpu_t time_interrupt_start;
+
 extern pcb_t* prova;
 
 extern struct list_head ready_queue;
-extern struct list_head msg_queue;
 extern pcb_t *current_process;
 
 extern struct list_head blockedPCBs[SEMDEVLEN - 1];

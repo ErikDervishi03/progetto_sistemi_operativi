@@ -3,8 +3,6 @@
 #include "headers/msg.h"
 #include <umps3/umps/libumps.h>
 
- cpu_t time_interrupt_start;
-#define BIT_CHECKER(n, bit) (((n) >> (bit)) & 1)
 void passupOrDie(int index)
 {
     if (current_process == NULL || current_process->p_supportStruct == NULL )
@@ -114,21 +112,6 @@ void systemcallHandler() {
 void exceptionHandler ()
 {
     //term_puts("dentro l'exception handler\n");
-    STCK(time_interrupt_start);
-    // error code from .ExcCode field of the Cause register
-    unsigned status = getSTATUS();
-    unsigned cause = getCAUSE();
-    unsigned exception_code = cause & 0x7FFFFFFF; // 0311 1111 x 32
-
-    unsigned is_interrupt_enabled = BIT_CHECKER(status, 7);
-    unsigned is_interrupt = BIT_CHECKER(cause, 31);
-
-    state_t *exception_state = (state_t *)BIOSDATAPAGE;
-    // check if interrupts first
-    if (is_interrupt_enabled && is_interrupt) {
-        interruptHandler();
-        return;
-    }
 
     switch (CAUSE_GET_EXCCODE (getCAUSE ()))
     {
@@ -138,7 +121,7 @@ void exceptionHandler ()
     case 1:
     case 2:
     case 3:
-        passupOrDie(PGFAULTEXCEPT); //YL
+        passupOrDie(PGFAULTEXCEPT);
         break;    
     case 8:
         systemcallHandler();
@@ -148,5 +131,6 @@ void exceptionHandler ()
         break;
     }
 }
+
 
 

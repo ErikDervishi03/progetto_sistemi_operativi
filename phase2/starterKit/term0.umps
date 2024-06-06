@@ -1,29 +1,11 @@
+entrato in initial
 entrato in scheduler
 passo il controllo a current process
 receive bloccante chiamo lo scheduler
 entrato in scheduler
 passo il controllo a current process
-dentro l'interrupt handler
-edentro l'interrupt handler
-pdentro l'interrupt handler
-receive bloccante chiamo lo scheduler
-entrato in scheduler
-passo il controllo a current process
-dentro l'interrupt handler
-receive bloccante chiamo lo scheduler
-entrato in scheduler
-passo il controllo a current process
-dentro l'interrupt handler
-edentro l'interrupt handler
-receive bloccante chiamo lo scheduler
-entrato in scheduler
-passo il controllo a current process
-dentro l'interrupt handler
-ddentro l'interrupt handler
-receive bloccante chiamo lo scheduler
-entrato in scheduler
-passo il controllo a current process
-dentro l'interrupt handler
+entrato in test
+prima di creare il processo
 receive bloccante chiamo lo scheduler
 entrato in scheduler
 passo il controllo a current process
