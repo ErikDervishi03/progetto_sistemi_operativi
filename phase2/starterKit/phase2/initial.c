@@ -1,17 +1,23 @@
-#include "const.h"
+/*Implement the main function and export the Nucleus's global variables, such as
+process count, soft-blocked count, blocked PCBs lists/pointers, etc.*/
 #include "dep.h"
-#include <umps3/umps/libumps.h>
-
-cpu_t prevTOD;
-unsigned int processCount, softBlockCount;
-pcb_t *ssi_pcb;
-
+/* GLOBAL VARIABLES*/
+// started but not terminated processes
+unsigned int processCount;
+// processes waiting for a resource
+unsigned int softBlockCount;
+// tail pointer to the ready state queue processes
 struct list_head ready_queue;
 pcb_t *current_process;
-
-struct list_head blockedPCBs[SEMDEVLEN - 1];
-struct list_head PseudoClockWP; // pseudo-clock waiting process
-
+struct list_head blockedPCBs[SEMDEVLEN - 1]; 
+// waiting for a message
+struct list_head msg_queue;
+// pcb waiting for clock tick
+struct list_head PseudoClockWP;
+// SSI process
+pcb_t *ssi_pcb;
+//accumulated CPU time
+cpu_t prevTOD;
 extern void test ();
 
 void memcpy(void *dest, void *src, unsigned int n)  
@@ -40,37 +46,52 @@ cpu_t getTimeElapsed () {
   return getTimeElapsed;
 }
 
-int main(){
+int main(int argc, char *argv[])
+{
+    // 1. Initialize the nucleus
+    initKernel();
 
-  term_puts("entrato in initial\n");
- 
-  passupvector_t *passupvector = (passupvector_t *) PASSUPVECTOR;
-  passupvector->tlb_refill_handler = (memaddr) uTLB_RefillHandler;
-  passupvector->tlb_refill_stackPtr = (memaddr) KERNELSTACK;
-  passupvector->exception_handler = (memaddr) exceptionHandler;
-  passupvector->exception_stackPtr = (memaddr) KERNELSTACK;
+    // 2. scheduler
+    scheduler();
+
+    return 0;
+}
+
+void initKernel() {
+  // block interrupts
+  //setSTATUS(ALLOFF);
+  //setMIE(ALLOFF);
+
+  passupvector_t *passupvector = (passupvector_t *)PASSUPVECTOR;
+  // populate the passup vector
+  passupvector->tlb_refill_handler = (memaddr)uTLB_RefillHandler; 
+  passupvector->tlb_refill_stackPtr = (memaddr)KERNELSTACK;
+  passupvector->exception_handler =
+      (memaddr)exceptionHandler; 
+  passupvector->exception_stackPtr = (memaddr)KERNELSTACK;
   
+  // initialize the nucleus data structures
   initPcbs();
   initMsgs();
 
-  /*initialize all the previously declared variables*/
-  processCount = 0;
+  // Initialize other variables
   softBlockCount = 0;
-  mkEmptyProcQ(&ready_queue);
-  current_process = NULL; 
-  mkEmptyProcQ(&PseudoClockWP);
+  processCount = 0;
 
-  for(int i = 0; i < SEMDEVLEN - 1; i++) {
+  INIT_LIST_HEAD(&ready_queue);
+  for (int i = 0; i < SEMDEVLEN-1; i++) {
     INIT_LIST_HEAD(&blockedPCBs[i]);
   }
+  INIT_LIST_HEAD(&PseudoClockWP);
+  current_process = NULL;
+
+  INIT_LIST_HEAD(&msg_queue);
   
-  /*Load the system-wide Interval Timer with 100 
-    milliseconds (constant PSECOND)*/
+  // load the system wide interval timer
   LDIT(PSECOND);
 
-  /*Instantiate a first process*/
-  /*instantiate ssi_pcb*/
-
+  // init the first process
+  
   ssi_pcb = allocPcb();
 
   ssi_pcb->p_s.status = ALLOFF | IEPON | IMON | TEBITON;
@@ -84,33 +105,35 @@ int main(){
 
   insertProcQ(&ready_queue, ssi_pcb);
 
-  /*instantiate a second process*/
+  ssi_pcb->p_pid = SSIPID;
 
-  pcb_t *entryTest = allocPcb ();
-  
-  /*interrupts enabled, the processor Local Timer enabled, kernel-mode on*/
-  // not sure about this, what status register should be set to?
-  entryTest->p_s.status = ALLOFF | IECON | IEPON | TEBITON;
+  processCount++;
 
-  /* SP set to RAMTOP - (2 * FRAMESIZE) (i.e.
-    use the last RAM frame for its stack minus 
-    the space needed by the first process*/
-  unsigned int ramTop;
+  pcb_t *second_process = allocPcb();
 
-  RAMTOP(ramTop);
+  RAMTOP(second_process->p_s.reg_sp); // Set SP to RAMTOP - 2 * FRAME_SIZE
+  second_process->p_s.reg_sp -= 2 * PAGESIZE; 
+  second_process->p_s.pc_epc = (memaddr)test; 
+  second_process->p_s.status = ALLOFF | IEPON | IMON | TEBITON;
+  second_process->p_s.reg_t9 = (memaddr)test;
+  processCount++; 
 
-  entryTest->p_s.reg_sp = ramTop - (2 * PAGESIZE);
-
-  entryTest->p_s.pc_epc = (memaddr) test;
-  entryTest->p_s.reg_t9 = (memaddr) test;
-
-  insertProcQ (&ready_queue, entryTest);
-  
-  processCount = 2;
-  
-  scheduler (); 
-
-  return 0;
-
+  insertProcQ(&ready_queue, second_process);
 }
 
+
+void copyState(state_t *source, state_t *dest) {
+    dest->entry_hi = source->entry_hi;
+    dest->cause = source->cause;
+    dest->status = source->status;
+    dest->pc_epc = source->pc_epc;
+    dest->reg_t9= source->reg_t9;
+    for (unsigned i = 0; i < 32; i++){
+        dest->gpr[i] = source->gpr[i];
+    }
+}
+
+cpu_t deltaTime(void){
+  cpu_t current_time_TOD;
+  return (STCK(current_time_TOD) - prevTOD);
+}
