@@ -1,5 +1,6 @@
 #include "const.h"
 #include "dep.h"
+#include "headers/pcb.h"
 #include <umps3/umps/libumps.h>
 
 cpu_t prevTOD;
@@ -7,6 +8,7 @@ unsigned int processCount, softBlockCount;
 pcb_t *ssi_pcb;
 
 struct list_head ready_queue;
+struct list_head msg_queue_list;
 pcb_t *current_process;
 
 struct list_head blockedPCBs[SEMDEVLEN - 1];
@@ -59,6 +61,7 @@ int main(){
   mkEmptyProcQ(&ready_queue);
   current_process = NULL; 
   mkEmptyProcQ(&PseudoClockWP);
+  mkEmptyProcQ(&msg_queue_list);
 
   for(int i = 0; i < SEMDEVLEN - 1; i++) {
     INIT_LIST_HEAD(&blockedPCBs[i]);

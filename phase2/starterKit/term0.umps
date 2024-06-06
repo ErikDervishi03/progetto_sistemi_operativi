@@ -1,16 +1,108 @@
 entrato in initial
 entrato in scheduler
 passo il controllo a current process
-receive bloccante chiamo lo scheduler
+entro in receive
+receive bloccante
 entrato in scheduler
 passo il controllo a current process
 entrato in test
+entrato nella send
+entro in receive
 prima di creare il processo
-receive bloccante chiamo lo scheduler
+entrato nella send
+entro in receive
+receive bloccante
 entrato in scheduler
 passo il controllo a current process
 dentro l'interrupt handler
-receive bloccante chiamo lo scheduler
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+entrato nella send
+entro in receive
+receive bloccante
 entrato in scheduler
-vado in panic nello scheduler
-kernel panic()
+dentro l'interrupt handler
+dentro l'interrupt handler
+edentro l'interrupt handler
+entrato in scheduler
+dentro l'interrupt handler
+edentro l'interrupt handler
+entrato in scheduler
+dentro l'interrupt handler
+edentro l'interrupt handler
+entrato in scheduler

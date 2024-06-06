@@ -40,3 +40,5 @@ extern void SSI_function_entry_point ();
 extern cpu_t getTimeElapsed ();
 
 extern pcb_PTR print_pcb;
+
+extern struct list_head msg_queue_list;

@@ -182,8 +182,11 @@ void test()
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
     pcb_PTR sender = (pcb_PTR)SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, 0, 0);
     
-    if (sender != test_pcb)
+    if (sender != test_pcb){
+        term_puts("sender != test_pcb PANIC\n"); 
         PANIC();
+    }
+        
     
     // init print process
     STST(&printstate);

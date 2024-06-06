@@ -41,6 +41,20 @@ int send(pcb_t *sender, pcb_t *dest, unsigned int payload) {
     return 0;
 }
 
+int isInList(struct list_head *target_process, int pid) {
+  pcb_PTR tmp;
+  list_for_each_entry(tmp, target_process, p_list) {
+    if (tmp->p_pid == pid)
+      return TRUE;
+  }
+  return FALSE;
+}
+
+int isFree(int p_pid){
+    return isInList(&pcbFree_h, p_pid);
+}
+
+
 void systemcallHandler() {
     //term_puts("dentro syscall handler\n");
     state_t *exception_state = (state_t *)BIOSDATAPAGE;
@@ -52,54 +66,81 @@ void systemcallHandler() {
     else {
         //SYS1  
         if(exception_state->reg_a0 == SENDMESSAGE) {
-            int nogood;     //valore di ritorno da inserire in reg_v0
-            int ready;      //se uguale a 1 il destinatario è nella ready queue, 0 altrimenti
-            int not_exists; //se uguale a 1 il destinatario è nella lista pcbFree_h
-            pcb_t *dest = (pcb_t *)(exception_state->reg_a1);
-            ready = isProcessInList(dest, &ready_queue);
-            not_exists = isProcessInList(dest, &pcbFree_h);
+            term_puts("entrato nella send\n");
+            if (exception_state->reg_a1 == 0) {
+                exception_state->reg_a0 = DEST_NOT_EXIST;
+                return;
+            }
 
-            if(not_exists) {
-                exception_state->reg_v0 = DEST_NOT_EXIST;  
+            pcb_t *dest_process = (pcb_PTR)exception_state->reg_a1;
+
+            if (isFree(dest_process->p_pid)) { // error!
+                exception_state->reg_a0 = DEST_NOT_EXIST;
+                return;
             }
-            else if(ready || dest == current_process) {
-                nogood = send(current_process, dest, exception_state->reg_a2);
-                exception_state->reg_v0 = nogood;
+
+            // push message
+            msg_t *msg = allocMsg();
+            if (msg == NULL) {
+                exception_state->reg_a0 = MSGNOGOOD;
+                return;
             }
-            else {
-                nogood = send(current_process, dest, exception_state->reg_a2);
-                insertProcQ(&ready_queue, dest);   //il processo era bloccato quindi lo inserisco sulla ready queue
-                exception_state->reg_v0 = nogood;
+
+            msg->m_payload = (unsigned)exception_state->reg_a2;
+            msg->m_sender = current_process;
+
+            if (outProcQ(&msg_queue_list, dest_process) != NULL) {
+                // process is blocked waiting for a message, i unblock it
+                insertProcQ(&ready_queue, dest_process);
+                softBlockCount--;
             }
+
+            insertMessage(&dest_process->msg_inbox, msg);
+            exception_state->reg_a0 = 0;
 
             exception_state->pc_epc += WORDLEN; //non bloccante
             LDST(exception_state);
+
         }
         //SYS2
         else if(exception_state->reg_a0 == RECEIVEMESSAGE) {
-            struct list_head *msg_inbox = &(current_process->msg_inbox);                        //inbox del ricevente
-            unsigned int from = exception_state->reg_a1;                                        //da chi voglio ricevere
-            msg_t *msg = popMessage(msg_inbox, (from == ANYMESSAGE ? NULL : (pcb_t *)(from)));  //rimozione messaggio dalla inbox del ricevente
-            
-            if(!msg) { 
-                //receive bloccante
-                current_process->p_s = *exception_state;
-                current_process->p_time += getTimeElapsed();
-                term_puts("receive bloccante chiamo lo scheduler\n");
-                scheduler();       
-            }
-            else {
-                //receive non bloccante
-                exception_state->reg_v0 = (memaddr)(msg->m_sender);
-                if(msg->m_payload != (unsigned int)NULL) {
-                    //accedo all'area di memoria in cui andare a caricare il payload del messaggio
-                    unsigned int *a2 = (unsigned int *)exception_state->reg_a2;
-                    *a2 = msg->m_payload;
+                term_puts("entro in receive\n");
+                pcb_t *sender = (pcb_PTR)exception_state->reg_a1;
+
+                // if the sender is NULL, then the process is looking for the first
+                msg_t * msg = popMessage(&current_process->msg_inbox, sender);
+
+                // there is no correct message in the inbox, need to be frozen.
+                if (msg == NULL) {
+                    term_puts("receive bloccante\n");
+                    // i can assume the process is in running state
+                    insertProcQ(&msg_queue_list, current_process);
+                    softBlockCount++;
+                    // save the processor state
+                    *exception_state = current_process->p_s;
+                    // update the accumulated CPU time for the Current Process
+                    current_process->p_time += getTimeElapsed();
+                    // get the next process
+                    scheduler();
+                    return;
                 }
-                freeMsg(msg); //il messaggio non serve più, lo libero
+
+                /*The saved processor state (located at the start of the BIOS Data
+                Page [Section 3]) must be copied into the Current Process’s PCB
+                (p_s)*/
+                /*This system call provides as returning value (placed in caller’s v0 in
+                µMPS3) the identifier of the process which sent the message extracted.
+                +payload in stored in a2*/
+                exception_state->reg_a0 = (unsigned)msg->m_sender;
+
+                // write the message's payload in the location signaled in the a2
+                // register.
+                if (exception_state->reg_a2 != 0) {
+                    // has a payload
+                    *((unsigned *)exception_state->reg_a2) = (unsigned)msg->m_payload;
+                }
                 exception_state->pc_epc += WORDLEN; //non bloccante
                 LDST(exception_state);
-            }
         }
         //valore registro a0 non corretto
         else if(exception_state->reg_a0 >= 1) {
@@ -107,6 +148,7 @@ void systemcallHandler() {
         }
     }
 }
+
 
 
 void exceptionHandler ()
@@ -131,6 +173,5 @@ void exceptionHandler ()
         break;
     }
 }
-
 
 
