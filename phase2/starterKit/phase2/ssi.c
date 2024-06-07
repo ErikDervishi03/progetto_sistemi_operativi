@@ -142,6 +142,7 @@ void SSIRequest(pcb_t* sender, const int service, void* arg){
 void SSI_function_entry_point(){
     while (1)
     {
+        term_puts("entrato nella ssi\n");
         ssi_payload_t payload;
         unsigned int senderAdd = SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
         const int service = payload.service_code;

@@ -68,21 +68,22 @@ void systemcallHandler() {
         if(exception_state->reg_a0 == SENDMESSAGE) {
             term_puts("entrato nella send\n");
             if (exception_state->reg_a1 == 0) {
-                exception_state->reg_a0 = DEST_NOT_EXIST;
+                exception_state->reg_v0 = DEST_NOT_EXIST;
                 return;
             }
 
             pcb_t *dest_process = (pcb_PTR)exception_state->reg_a1;
 
-            if (isFree(dest_process->p_pid)) { // error!
-                exception_state->reg_a0 = DEST_NOT_EXIST;
+            // If the target process is in the pcbFree_h list, set the return register (v0 in μMPS3)
+            // to DEST_NOT_EXIST
+            if (isProcessInList(dest_process, &pcbFree_h)) { 
+                exception_state->reg_v0 = DEST_NOT_EXIST;
                 return;
             }
 
-            // push message
             msg_t *msg = allocMsg();
             if (msg == NULL) {
-                exception_state->reg_a0 = MSGNOGOOD;
+                exception_state->reg_v0 = MSGNOGOOD;
                 return;
             }
 
@@ -95,8 +96,18 @@ void systemcallHandler() {
                 softBlockCount--;
             }
 
+            if(((ssi_payload_t *)msg->m_payload)->service_code == CREATEPROCESS){
+                term_puts("CREATEPROCESS servizio richiesto. mando messaggio\n");
+            }
+
+            if(dest_process == ssi_pcb){
+                term_puts("dest_process == ssi_pcb\n");
+            }
+
+            term_puts("inserisco il messaggio nella inbox\n");
             insertMessage(&dest_process->msg_inbox, msg);
-            exception_state->reg_a0 = 0;
+            //on success returns/places 0 in the caller’s v0
+            exception_state->reg_v0 = 0;
 
             exception_state->pc_epc += WORDLEN; //non bloccante
             LDST(exception_state);
@@ -109,7 +120,9 @@ void systemcallHandler() {
 
                 // if the sender is NULL, then the process is looking for the first
                 msg_t * msg = popMessage(&current_process->msg_inbox, sender);
-
+                if(current_process == ssi_pcb){
+                    term_puts("current_process == ssi_pcb\n");
+                }
                 // there is no correct message in the inbox, need to be frozen.
                 if (msg == NULL) {
                     term_puts("receive bloccante\n");
@@ -117,7 +130,7 @@ void systemcallHandler() {
                     insertProcQ(&msg_queue_list, current_process);
                     softBlockCount++;
                     // save the processor state
-                    *exception_state = current_process->p_s;
+                    current_process->p_s = *exception_state;
                     // update the accumulated CPU time for the Current Process
                     current_process->p_time += getTimeElapsed();
                     // get the next process
@@ -131,7 +144,7 @@ void systemcallHandler() {
                 /*This system call provides as returning value (placed in caller’s v0 in
                 µMPS3) the identifier of the process which sent the message extracted.
                 +payload in stored in a2*/
-                exception_state->reg_a0 = (unsigned)msg->m_sender;
+                exception_state->reg_v0 = (unsigned)msg->m_sender;
 
                 // write the message's payload in the location signaled in the a2
                 // register.
@@ -139,7 +152,9 @@ void systemcallHandler() {
                     // has a payload
                     *((unsigned *)exception_state->reg_a2) = (unsigned)msg->m_payload;
                 }
-                exception_state->pc_epc += WORDLEN; //non bloccante
+
+                freeMsg(msg);
+                exception_state->pc_epc += WORDLEN; 
                 LDST(exception_state);
         }
         //valore registro a0 non corretto

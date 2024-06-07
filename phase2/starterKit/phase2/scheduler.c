@@ -13,8 +13,10 @@ void scheduler(){
         current_process->p_time += getTimeElapsed();
         
         setTIMER(TIMESLICE);
-
-        term_puts("passo il controllo a current process\n");
+        if(current_process == ssi_pcb)
+            term_puts("passo il controllo a ssi_pcb\n");
+        else
+            term_puts("passo il controllo a current process\n");
 
         if(current_process == print_pcb) term_puts("current_process == print_pcb\n");
         LDST(&current_process->p_s);

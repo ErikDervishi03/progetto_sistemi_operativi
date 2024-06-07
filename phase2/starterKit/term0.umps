@@ -1,102 +1,44 @@
 entrato in initial
 entrato in scheduler
-passo il controllo a current process
+passo il controllo a ssi_pcb
+edentro l'interrupt handler
 entro in receive
+current_process == ssi_pcb
 receive bloccante
 entrato in scheduler
 passo il controllo a current process
 entrato in test
 entrato nella send
+inserisco il messaggio nella inbox
 entro in receive
 prima di creare il processo
 entrato nella send
+CREATEPROCESS servizio richiesto. mando messaggio
+dest_process == ssi_pcb
+inserisco il messaggio nella inbox
 entro in receive
+receive bloccante
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entro in receive
+current_process == ssi_pcb
+entrato nella send
+inserisco il messaggio nella inbox
+edentro l'interrupt handler
+entro in receive
+current_process == ssi_pcb
 receive bloccante
 entrato in scheduler
 passo il controllo a current process
-dentro l'interrupt handler
 entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
-entrato nella send
-entro in receive
+dopo di creare il processo
 entrato nella send
 entro in receive
 receive bloccante
 entrato in scheduler
 dentro l'interrupt handler
+entrato in scheduler
 dentro l'interrupt handler
 edentro l'interrupt handler
 entrato in scheduler
