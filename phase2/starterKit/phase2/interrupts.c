@@ -95,7 +95,7 @@ static void deviceInterruptHandler(int line, int cause, state_t *exception_state
         msg->m_sender = ssi_pcb;
         msg->m_payload = (memaddr)(device_status);
         insertMessage(&(unblocked_pcb->msg_inbox), msg); 
-        insertProcQ(&Ready_Queue, unblocked_pcb); 
+        insertProcQ(&ready_queue, unblocked_pcb); 
         softBlockCount--;
     }
 
@@ -109,12 +109,10 @@ static void deviceInterruptHandler(int line, int cause, state_t *exception_state
 static void localTimerInterruptHandler(state_t *exception_state) {
   setTIMER(TIMESLICE);
   exception_state = (state_t *)BIOSDATAPAGE;
-
-  if (current_process != NULL) {
-    current_process->p_s = *exception_state;
-    insertProcQ(&Ready_Queue, current_process);
-    getRemainTime(current_process);
-  }
+  current_process->p_s = *exception_state;
+  insertProcQ(&ready_queue, current_process);
+  getRemainTime(current_process);
+  
   scheduler();
 }
 
@@ -123,7 +121,7 @@ static void pseudoClockInterruptHandler(state_t* exception_state) {
   LDIT(PSECOND);
   pcb_PTR pcb = NULL;
   while ((pcb = removeProcQ(&PseudoClockWP))) { 
-    insertProcQ(&Ready_Queue, pcb);
+    insertProcQ(&ready_queue, pcb);
 
     msg_PTR msg = allocMsg();
     msg->m_sender = ssi_pcb;
@@ -147,6 +145,7 @@ static void pseudoClockInterruptHandler(state_t* exception_state) {
 }
 
 void interruptHandler(int cause, state_t *exception_state) {
+      term_puts("dentro l'interrupt handler\n");
     //riconoscimento linea interrupt in ordine di priorità
     if (CAUSE_IP_GET(cause, IL_CPUTIMER))
         localTimerInterruptHandler(exception_state);

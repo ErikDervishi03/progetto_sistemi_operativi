@@ -38,6 +38,7 @@ void systemcallHandler() {
     } else {
         switch (exception_state->reg_a0) {
             case SENDMESSAGE: {
+                term_puts("faccio la send\n");
                 if (exception_state->reg_a1 == 0) {
                     exception_state->reg_v0 = DEST_NOT_EXIST;
                     return;
@@ -71,6 +72,7 @@ void systemcallHandler() {
                 break;
             }
             case RECEIVEMESSAGE: {
+                term_puts("faccio la receive\n");
                 pcb_t *sender = (pcb_PTR)exception_state->reg_a1;
 
                 msg_t *msg = popMessage(&current_process->msg_inbox, sender);
@@ -79,7 +81,7 @@ void systemcallHandler() {
                     insertProcQ(&msg_queue_list, current_process);
                     softBlockCount++;
                     current_process->p_s = *exception_state;
-                    current_process->p_time += getTimeElapsed();
+                    getRemainTime(current_process);
                     scheduler();
                     return;
                 }

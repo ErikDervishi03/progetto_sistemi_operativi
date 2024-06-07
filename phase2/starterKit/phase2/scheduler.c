@@ -10,7 +10,7 @@ void scheduler(){
     current_process = removeProcQ(&ready_queue);
 
     if(current_process){
-        current_process->p_time += getTimeElapsed();
+        //getRemainTime(current_process);
         
         setTIMER(TIMESLICE);
         if(current_process == ssi_pcb)

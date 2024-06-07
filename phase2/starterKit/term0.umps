@@ -1,102 +1,201 @@
 entrato in initial
 entrato in scheduler
 passo il controllo a ssi_pcb
-Sdentro l'interrupt handler
-non timer interrupt
-entro in receive
-current_process == ssi_pcb
-receive bloccante
+fdentro l'interrupt handler
 entrato in scheduler
 passo il controllo a current process
 entrato in test
-entrato nella send
-inserisco il messaggio nella inbox
-entro in receive
+faccio la send
+faccio la receive
 prima di creare il processo
-entrato nella send
-CREATEPROCESS servizio richiesto. mando messaggio
-dest_process == ssi_pcb
-inserisco il messaggio nella inbox
-entro in receive
-receive bloccante
+faccio la send
+faccio la receive
 entrato in scheduler
 passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
-entro in receive
-current_process == ssi_pcb
-entrato nella send
-inserisco il messaggio nella inbox
-Sdentro l'interrupt handler
-non timer interrupt
-entro in receive
-current_process == ssi_pcb
-receive bloccante
 entrato in scheduler
-passo il controllo a current process
-entro in receive
-dopo creare il processo
-entrato nella send
-entro in receive
-receive bloccante
-entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-non timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
 dentro l'interrupt handler
-interval timer interrupt
 entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'interrupt handler
+entrato in scheduler
+passo il controllo a ssi_pcb
+dentro l'i

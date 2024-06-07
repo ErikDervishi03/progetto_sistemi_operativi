@@ -62,7 +62,7 @@ unsigned int ssi_new_process(ssi_create_process_t *p_info, pcb_t* parent) {
     insertChild(parent, child);
 
     // Insert into the ready queue
-    insertProcQ(&Ready_Queue, child);
+    insertProcQ(&ready_queue, child);
 
     processCount++;
     return (unsigned int)child;
@@ -150,6 +150,7 @@ unsigned int SSIRequest(pcb_t* sender, ssi_payload_t *payload) {
 /* Main entry point for the SSI process, continuously processes incoming requests in a loop. */
 void SSI_function_entry_point() {
     while (1) {
+        term_puts("fdentro l'ssi\n");
         unsigned int payload;
 
         // Wait for a client request through SYS2
