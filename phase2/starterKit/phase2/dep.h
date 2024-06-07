@@ -13,6 +13,16 @@ extern unsigned int processCount, softBlockCount;
 
 extern pcb_t* prova;
 
+extern struct list_head Ready_Queue;
+extern struct list_head Locked_disk;
+extern struct list_head Locked_flash;
+extern struct list_head Locked_terminal_recv;
+extern struct list_head Locked_terminal_transm;
+extern struct list_head Locked_ethernet;
+extern struct list_head Locked_printer;
+extern struct list_head Locked_pseudo_clock;
+
+extern int pid_counter;
 extern struct list_head ready_queue;
 extern pcb_t *current_process;
 

@@ -1,7 +1,8 @@
 entrato in initial
 entrato in scheduler
 passo il controllo a ssi_pcb
-edentro l'interrupt handler
+Sdentro l'interrupt handler
+non timer interrupt
 entro in receive
 current_process == ssi_pcb
 receive bloccante
@@ -21,30 +22,81 @@ receive bloccante
 entrato in scheduler
 passo il controllo a ssi_pcb
 dentro l'interrupt handler
+interval timer interrupt
 entro in receive
 current_process == ssi_pcb
 entrato nella send
 inserisco il messaggio nella inbox
-edentro l'interrupt handler
+Sdentro l'interrupt handler
+non timer interrupt
 entro in receive
 current_process == ssi_pcb
 receive bloccante
 entrato in scheduler
 passo il controllo a current process
 entro in receive
-dopo di creare il processo
+dopo creare il processo
 entrato nella send
 entro in receive
 receive bloccante
 entrato in scheduler
 dentro l'interrupt handler
+non timer interrupt
 entrato in scheduler
 dentro l'interrupt handler
-edentro l'interrupt handler
+interval timer interrupt
 entrato in scheduler
 dentro l'interrupt handler
-edentro l'interrupt handler
+interval timer interrupt
 entrato in scheduler
 dentro l'interrupt handler
-edentro l'interrupt handler
+interval timer interrupt
+entrato in scheduler
+dentro l'interrupt handler
+interval timer interrupt
+entrato in scheduler
+dentro l'interrupt handler
+interval timer interrupt
+entrato in scheduler
+dentro l'interrupt handler
+interval timer interrupt
+entrato in scheduler
+dentro l'interrupt handler
+interval timer interrupt
+entrato in scheduler
+dentro l'interrupt handler
+interval timer interrupt
+entrato in scheduler
+dentro l'interrupt handler
+interval timer interrupt
+entrato in scheduler
+dentro l'interrupt handler
+interval timer interrupt
+entrato in scheduler
+dentro l'interrupt handler
+interval timer interrupt
+entrato in scheduler
+dentro l'interrupt handler
+interval timer interrupt
+entrato in scheduler
+dentro l'interrupt handler
+interval timer interrupt
+entrato in scheduler
+dentro l'interrupt handler
+interval timer interrupt
+entrato in scheduler
+dentro l'interrupt handler
+interval timer interrupt
+entrato in scheduler
+dentro l'interrupt handler
+interval timer interrupt
+entrato in scheduler
+dentro l'interrupt handler
+interval timer interrupt
+entrato in scheduler
+dentro l'interrupt handler
+interval timer interrupt
+entrato in scheduler
+dentro l'interrupt handler
+interval timer interrupt
 entrato in scheduler

@@ -197,7 +197,7 @@ void test()
     term_puts("prima di creare il processo\n");
     // create print process
     print_pcb = create_process(&printstate);
-    term_puts("dopo di creare il processo\n");
+    term_puts("dopo creare il processo\n");
 
     if ((int)print_pcb == NOPROC)
         PANIC();

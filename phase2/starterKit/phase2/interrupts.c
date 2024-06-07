@@ -1,173 +1,165 @@
-#include "const.h"
 #include "dep.h"
-#include <umps3/umps/libumps.h>
+#include <umps3/umps/const.h>
 
-/*
-A device or timer interrupt occurs when:
-  a)a previously initiated I/O request completes
-  b)a Processor Local Timer (PLT) or 
-    the Interval Timer makes a 0x0000.0000 ⇒0xFFFF.FFFF transition
-*/
-void startInterrupt(){
-  if (current_process != NULL)
-    /* updating the execution time of the current process so that the 
-       time spent handling the interrupt is not attributed to it*/
-    current_process->p_time += getTimeElapsed ();
 
-  /*
-    clear the Timer Enable Bit (TEBIT) in the STATUS 
-    register to disable further timer interrupts while handling 
-    the current interrupt
-  */
-  setSTATUS (getSTATUS () & ~TEBITON);
+void getRemainTime(pcb_t *target) {
+    int currTOD;
+    STCK(currTOD);
+    target->p_time += (currTOD - prevTOD);
+    prevTOD = currTOD;
 }
 
-void endInterrupt ()
-{
-  setSTATUS (getSTATUS () | TEBITON);
-  STCK (prevTOD);
-  if (current_process != NULL)
-    LDST ((state_t *)BIOSDATAPAGE);
-  else
-    scheduler ();
-}
-
-
-void handlePLT(){
-  /*here we are loading the timer with a new value to acknowledge the PLT interrupt */
-  current_process->p_time += getTimeElapsed ();
-
-  /*Copy the processor state at the time of the exception (located at the start of the BIOS Data
-  Page [Section 3.2.2-pops]) into the Current Process’s PCB (p_s)*/
-
-  state_t *p_state = (state_t *)BIOSDATAPAGE;
-  current_process->p_s = *p_state;
-  
-  /*Place the Current Process on the Ready Queue; transitioning the Current Process from the
-  “running” state to the “ready” state*/
-  insertProcQ(&ready_queue, current_process);
-  current_process = NULL;
-
-  /*Call the Scheduler*/
-  scheduler ();
-
-}
-
-void handleIntervalTimer(){
-  
-  /*Acknowledge the interrupt by loading the Interval Timer with a new value: 100 milliseconds
-  (constant PSECOND)*/
-  LDIT(PSECOND);
-
-  struct list_head* iter;
-
-  /*Unblock all PCBs blocked waiting a Pseudo-clock tick*/
-  list_for_each(iter,&PseudoClockWP) {
-    pcb_t* item = container_of(iter,pcb_t,p_list);
-
-    insertProcQ(&ready_queue, item);
-
-    list_del(iter);
-
-    softBlockCount--;// ?
-  }
-
-  /*Return control to the Current Process: perform a LDST on the saved exception state (located at
-  the start of the BIOS Data Page*/
-  LDST((state_t *)BIOSDATAPAGE);
-}
-
-int getDeviceNumber (int line)
-{
-  devregarea_t *bus_reg_area = (devregarea_t *)BUS_REG_RAM_BASE;
-  unsigned int bitmap = bus_reg_area->interrupt_dev[EXT_IL_INDEX (line)];
-  for (int number = 0, mask = 1; number < N_DEV_PER_IL; number++, mask <<= 1)
-    if (bitmap & mask)
-      return number;
-  return -1;
-}
-
-int getHighestPriorityNTint(){
-  for (int line = DEV_IL_START; line < N_INTERRUPT_LINES; line++){
-    if (getCAUSE() & (1 << line)){
-      return line;
+/*funzione che tramite il campo dev_no (device number) rimuove */
+static pcb_t *unblockProcessByDeviceNumber(int device_number, struct list_head *list) {
+    //tramite il campo del dev_no (device number) del pcb, lo rimuovo dalla lista
+    pcb_t* tmp;
+    list_for_each_entry(tmp, list, p_list) {
+        if(tmp->numero_dispositivo == device_number)
+            return outProcQ(list, tmp);
     }
-  }
-  return -1;
+    return NULL;
 }
 
+static void deviceInterruptHandler(int line, int cause, state_t *exception_state) {
+    devregarea_t *device_register_area = (devregarea_t *)BUS_REG_RAM_BASE;
+    //accedo alla bitmap dei device per la linea su cui è stato rilevato un interrupt
+    unsigned int interrupting_devices_bitmap = device_register_area->interrupt_dev[line - 3];
+    unsigned int device_status;
+    unsigned int device_number;
 
-void handleNonTimer(){
-  
-  /*Calculate the address for this device’s device register [Section 5.1-pops]:
-  devAddrBase = 0x10000054 + ((IntlineNo - 3) * 0x80) + (DevNo * 0x10)
-  Tip: to calculate the device number you can use a switch among constants DEVxON */
+    //calcolo numero del device in ordine di priorità
+    if(interrupting_devices_bitmap & DEV7ON)
+        device_number = 7;
+    else if(interrupting_devices_bitmap & DEV6ON)
+        device_number = 6;
+    else if(interrupting_devices_bitmap & DEV5ON)
+        device_number = 5;
+    else if(interrupting_devices_bitmap & DEV4ON)
+        device_number = 4;
+    else if(interrupting_devices_bitmap & DEV3ON)
+        device_number = 3;
+    else if(interrupting_devices_bitmap & DEV2ON)
+        device_number = 2;
+    else if(interrupting_devices_bitmap & DEV1ON)
+        device_number = 1;
+    else if(interrupting_devices_bitmap & DEV0ON)
+        device_number = 0;
 
-  int intlineNo = getHighestPriorityNTint();
+    pcb_t* unblocked_pcb;
 
-  if(intlineNo == -1)
-    return;
+    if(line == IL_TERMINAL){
+        //accesso al registro del dipositivo
+        termreg_t *device_register = (termreg_t *)DEV_REG_ADDR(line, device_number);
+        
+        //gestione interrupt terminale --> 2 sub-devices
+        if(((device_register->transm_status) & 0x000000FF) == 5){ //ultimi 8 bit contengono il codice dello status
+            //output terminale
+            device_status = device_register->transm_status;
+            device_register->transm_command = ACK;
+            unblocked_pcb = unblockProcessByDeviceNumber(device_number, &Locked_terminal_transm);
+        }
+        else{
+            //input terminale
+            device_status = device_register->recv_status;
+            device_register->recv_command = ACK;
+            unblocked_pcb = unblockProcessByDeviceNumber(device_number, &Locked_terminal_recv);
+        }
+    } 
+    else{
+        //accesso al registro del dipositivo
+        dtpreg_t *device_register = (dtpreg_t *)DEV_REG_ADDR(line, device_number);
+        //gestione interrupt di tutti gli altri dispositivi I/O
+        device_status = device_register->status;
+        device_register->command = ACK;
+        switch (line) {
+            case IL_DISK:
+                unblocked_pcb = unblockProcessByDeviceNumber(device_number, &Locked_disk);
+                break;
+            case IL_FLASH:
+                unblocked_pcb = unblockProcessByDeviceNumber(device_number, &Locked_flash);
+                break;
+            case IL_ETHERNET:
+                unblocked_pcb = unblockProcessByDeviceNumber(device_number, &Locked_ethernet);
+                break;
+            case IL_PRINTER:
+                unblocked_pcb = unblockProcessByDeviceNumber(device_number, &Locked_printer);
+                break;
+            default:
+                unblocked_pcb = NULL;
+                break;
+        }
+    }
+    if(unblocked_pcb) {
+        unblocked_pcb->p_s.reg_v0 = device_status;
+        msg_t *msg = allocMsg();
+        msg->m_sender = ssi_pcb;
+        msg->m_payload = (memaddr)(device_status);
+        insertMessage(&(unblocked_pcb->msg_inbox), msg); 
+        insertProcQ(&Ready_Queue, unblocked_pcb); 
+        softBlockCount--;
+    }
 
-  int devNo = getDeviceNumber(intlineNo);
+    if(current_process) 
+        LDST(exception_state);
+    else 
+        scheduler();
+}
 
-  if(devNo == -1)
-    return;
+/*funzione che gestisce l'interrupt causato dal processo local timer*/
+static void localTimerInterruptHandler(state_t *exception_state) {
+  setTIMER(TIMESLICE);
+  exception_state = (state_t *)BIOSDATAPAGE;
 
-  unsigned int devAddrBase = DEV_REG_ADDR(intlineNo, devNo);
+  if (current_process != NULL) {
+    current_process->p_s = *exception_state;
+    insertProcQ(&Ready_Queue, current_process);
+    getRemainTime(current_process);
+  }
+  scheduler();
+}
 
-  /*Save off the status code from the device’s device register*/
+/*funzione che gestisce l'interrupt causato dall'interval timer*/
+static void pseudoClockInterruptHandler(state_t* exception_state) {
+  LDIT(PSECOND);
+  pcb_PTR pcb = NULL;
+  while ((pcb = removeProcQ(&PseudoClockWP))) { 
+    insertProcQ(&Ready_Queue, pcb);
 
-  devregarea_t *bus_reg_area = (devregarea_t *)BUS_REG_RAM_BASE;
-  devreg_t *devReg = &bus_reg_area->devreg[intlineNo - DEV_IL_START][devNo];
-  unsigned int status = devReg->dtp.status;
-
-  /*Acknowledge the outstanding interrupt. This is accomplished by writing the acknowledge com-
-  mand code (ACK) in the interrupting device’s device register. Alternatively, writing a new com-
-  mand in the interrupting device’s device register will also acknowledge the interrupt.*/
-
-  devReg->dtp.command = ACK;
-  //devReg->term.recv_command = ACK; this is done automatically cause it's a union (go see devreg_t in types.h)
-
-  /*Send a message and unblock the PCB waiting the status response from this (sub)device. This
-  operation should unblock the process (PCB) which initiated this I/O operation and then re-
-  quested the status response via a SYS2 operation.
-  Important: Use of SYSCALL is discourage because both use BIOSDATAPAGE*/
-
-  pcb_t *waitingProcess = NULL;//blockedPCBs[(intlineNo - DEV_IL_START) * N_DEV_PER_IL + devNo]; 
-  
-  if(waitingProcess != NULL){
-    /*Place the stored off status code in the newly unblocked PCB’s v0 register*/
-    waitingProcess->p_s.reg_v0 = status;
-    /*Insert the newly unblocked PCB on the Ready Queue, transitioning this process from the
-    “blocked” state to the “ready” state*/
-    insertProcQ(&ready_queue, waitingProcess);
-    //blockedPCBs[(intlineNo - 2) * N_DEV_PER_IL + devNo] = NULL; va fatto?
-
+    msg_PTR msg = allocMsg();
+    msg->m_sender = ssi_pcb;
+    msg->m_payload = 0;
+    insertMessage(&pcb->msg_inbox, msg);
+    softBlockCount--;
   }
 
-  if(current_process == NULL)
+  if (current_process == NULL) {
+
     scheduler();
-  else
+
+  }else{
+
+    getRemainTime(current_process);
+
     LDST((state_t *)BIOSDATAPAGE);
+  }
+
+
 }
 
-void interruptHandler() {
-
-  term_puts("dentro l'interrupt handler\n");
-
-  startInterrupt();
-
-  if (getCAUSE() & LOCALTIMERINT){
-    handlePLT();
-  }
-
-  else if(getCAUSE() & TIMERINTERRUPT){
-    handleIntervalTimer();
-  }
-
-  else {
-    handleNonTimer();
-  }
-  endInterrupt();
+void interruptHandler(int cause, state_t *exception_state) {
+    //riconoscimento linea interrupt in ordine di priorità
+    if (CAUSE_IP_GET(cause, IL_CPUTIMER))
+        localTimerInterruptHandler(exception_state);
+    else if (CAUSE_IP_GET(cause, IL_TIMER))
+        pseudoClockInterruptHandler(exception_state);
+    else if (CAUSE_IP_GET(cause, IL_DISK))
+        deviceInterruptHandler(IL_DISK, cause, exception_state);
+    else if (CAUSE_IP_GET(cause, IL_FLASH))
+        deviceInterruptHandler(IL_FLASH, cause, exception_state);
+    else if (CAUSE_IP_GET(cause, IL_ETHERNET))
+        deviceInterruptHandler(IL_ETHERNET, cause, exception_state);
+    else if (CAUSE_IP_GET(cause, IL_PRINTER))
+        deviceInterruptHandler(IL_PRINTER, cause, exception_state);
+    else if (CAUSE_IP_GET(cause, IL_TERMINAL))
+        deviceInterruptHandler(IL_TERMINAL, cause, exception_state);
 }
-

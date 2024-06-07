@@ -3,190 +3,126 @@
 #include "headers/msg.h"
 #include <umps3/umps/libumps.h>
 
-void passupOrDie(int index)
-{
-    if (current_process == NULL || current_process->p_supportStruct == NULL )
-    {
+// Function to pass up or terminate the process
+void passupOrDie(int index) {
+    if (current_process == NULL || current_process->p_supportStruct == NULL) {
         terminate_process(current_process);
-        scheduler ();
-    }
-    else
-    {
+        scheduler();
+    } else {
         state_t *p_state = (state_t *)BIOSDATAPAGE;
         current_process->p_supportStruct->sup_exceptState[index] = *p_state;
 
         context_t ctx = current_process->p_supportStruct->sup_exceptContext[index];
-        LDCXT (ctx.stackPtr, ctx.status, ctx.pc);
+        LDCXT(ctx.stackPtr, ctx.status, ctx.pc);
     }
-
 }
 
+// Check if a process is in the list
 static int isProcessInList(pcb_t* p, struct list_head *list) {
     pcb_t *current;
-    list_for_each_entry(current, list, p_list){
-        if(p == current)
+    list_for_each_entry(current, list, p_list) {
+        if (p == current)
             return 1; 
     }
     return 0;    
 }
 
-int send(pcb_t *sender, pcb_t *dest, unsigned int payload) {
-    msg_t *msg = allocMsg();
-    if(!msg) //non ci sono più messaggi disponibili
-        return MSGNOGOOD;
-
-    msg->m_sender = sender;
-    msg->m_payload = payload;
-    insertMessage(&(dest->msg_inbox), msg); 
-    return 0;
-}
-
-int isInList(struct list_head *target_process, int pid) {
-  pcb_PTR tmp;
-  list_for_each_entry(tmp, target_process, p_list) {
-    if (tmp->p_pid == pid)
-      return TRUE;
-  }
-  return FALSE;
-}
-
-int isFree(int p_pid){
-    return isInList(&pcbFree_h, p_pid);
-}
-
-
+// Handle system calls
 void systemcallHandler() {
-    //term_puts("dentro syscall handler\n");
     state_t *exception_state = (state_t *)BIOSDATAPAGE;
-    if((exception_state->status << 30) >> 31) { //controllo che il processo non sia in kernel-mode
-      //scrivo come codice dell'eccezione il valore EXC_RI e invoco il Pass Up or Die
-      exception_state->cause = (exception_state->cause & CLEAREXECCODE) | (EXC_RI << CAUSESHIFT);
-      passupOrDie(GENERALEXCEPT);
-    }
-    else {
-        //SYS1  
-        if(exception_state->reg_a0 == SENDMESSAGE) {
-            term_puts("entrato nella send\n");
-            if (exception_state->reg_a1 == 0) {
-                exception_state->reg_v0 = DEST_NOT_EXIST;
-                return;
+
+    // Ensure the process is in kernel mode
+    if ((exception_state->status << 30) >> 31) {
+        exception_state->cause = (exception_state->cause & CLEAREXECCODE) | (EXC_RI << CAUSESHIFT);
+        passupOrDie(GENERALEXCEPT);
+    } else {
+        switch (exception_state->reg_a0) {
+            case SENDMESSAGE: {
+                if (exception_state->reg_a1 == 0) {
+                    exception_state->reg_v0 = DEST_NOT_EXIST;
+                    return;
+                }
+
+                pcb_t *dest_process = (pcb_PTR)exception_state->reg_a1;
+
+                if (isProcessInList(dest_process, &pcbFree_h)) { 
+                    exception_state->reg_v0 = DEST_NOT_EXIST;
+                    return;
+                }
+
+                msg_t *msg = allocMsg();
+                if (msg == NULL) {
+                    exception_state->reg_v0 = MSGNOGOOD;
+                    return;
+                }
+
+                msg->m_payload = (unsigned)exception_state->reg_a2;
+                msg->m_sender = current_process;
+
+                if (outProcQ(&msg_queue_list, dest_process) != NULL) {
+                    insertProcQ(&ready_queue, dest_process);
+                    softBlockCount--;
+                }
+
+                insertMessage(&dest_process->msg_inbox, msg);
+                exception_state->reg_v0 = 0;
+                exception_state->pc_epc += WORDLEN;
+                LDST(exception_state);
+                break;
             }
-
-            pcb_t *dest_process = (pcb_PTR)exception_state->reg_a1;
-
-            // If the target process is in the pcbFree_h list, set the return register (v0 in μMPS3)
-            // to DEST_NOT_EXIST
-            if (isProcessInList(dest_process, &pcbFree_h)) { 
-                exception_state->reg_v0 = DEST_NOT_EXIST;
-                return;
-            }
-
-            msg_t *msg = allocMsg();
-            if (msg == NULL) {
-                exception_state->reg_v0 = MSGNOGOOD;
-                return;
-            }
-
-            msg->m_payload = (unsigned)exception_state->reg_a2;
-            msg->m_sender = current_process;
-
-            if (outProcQ(&msg_queue_list, dest_process) != NULL) {
-                // process is blocked waiting for a message, i unblock it
-                insertProcQ(&ready_queue, dest_process);
-                softBlockCount--;
-            }
-
-            if(((ssi_payload_t *)msg->m_payload)->service_code == CREATEPROCESS){
-                term_puts("CREATEPROCESS servizio richiesto. mando messaggio\n");
-            }
-
-            if(dest_process == ssi_pcb){
-                term_puts("dest_process == ssi_pcb\n");
-            }
-
-            term_puts("inserisco il messaggio nella inbox\n");
-            insertMessage(&dest_process->msg_inbox, msg);
-            //on success returns/places 0 in the caller’s v0
-            exception_state->reg_v0 = 0;
-
-            exception_state->pc_epc += WORDLEN; //non bloccante
-            LDST(exception_state);
-
-        }
-        //SYS2
-        else if(exception_state->reg_a0 == RECEIVEMESSAGE) {
-                term_puts("entro in receive\n");
+            case RECEIVEMESSAGE: {
                 pcb_t *sender = (pcb_PTR)exception_state->reg_a1;
 
-                // if the sender is NULL, then the process is looking for the first
-                msg_t * msg = popMessage(&current_process->msg_inbox, sender);
-                if(current_process == ssi_pcb){
-                    term_puts("current_process == ssi_pcb\n");
-                }
-                // there is no correct message in the inbox, need to be frozen.
+                msg_t *msg = popMessage(&current_process->msg_inbox, sender);
+
                 if (msg == NULL) {
-                    term_puts("receive bloccante\n");
-                    // i can assume the process is in running state
                     insertProcQ(&msg_queue_list, current_process);
                     softBlockCount++;
-                    // save the processor state
                     current_process->p_s = *exception_state;
-                    // update the accumulated CPU time for the Current Process
                     current_process->p_time += getTimeElapsed();
-                    // get the next process
                     scheduler();
                     return;
                 }
 
-                /*The saved processor state (located at the start of the BIOS Data
-                Page [Section 3]) must be copied into the Current Process’s PCB
-                (p_s)*/
-                /*This system call provides as returning value (placed in caller’s v0 in
-                µMPS3) the identifier of the process which sent the message extracted.
-                +payload in stored in a2*/
                 exception_state->reg_v0 = (unsigned)msg->m_sender;
 
-                // write the message's payload in the location signaled in the a2
-                // register.
                 if (exception_state->reg_a2 != 0) {
-                    // has a payload
                     *((unsigned *)exception_state->reg_a2) = (unsigned)msg->m_payload;
                 }
 
                 freeMsg(msg);
                 exception_state->pc_epc += WORDLEN; 
                 LDST(exception_state);
+                break;
+            }
+            default: {
+                if (exception_state->reg_a0 >= 1) {
+                    passupOrDie(GENERALEXCEPT);
+                }
+                break;
+            }
         }
-        //valore registro a0 non corretto
-        else if(exception_state->reg_a0 >= 1) {
+    }
+}
+
+// Handle exceptions
+void exceptionHandler() {
+    STCK(prevTOD);
+
+    switch (CAUSE_GET_EXCCODE(getCAUSE())) {
+        case 0:
+            interruptHandler();
+            break;
+        case 1:
+        case 2:
+        case 3:
+            passupOrDie(PGFAULTEXCEPT);
+            break;
+        case 8:
+            systemcallHandler();
+            break;
+        default:
             passupOrDie(GENERALEXCEPT);
-        }
+            break;
     }
 }
-
-
-
-void exceptionHandler ()
-{
-    //term_puts("dentro l'exception handler\n");
-
-    switch (CAUSE_GET_EXCCODE (getCAUSE ()))
-    {
-    case 0:
-        interruptHandler(); 
-        break;
-    case 1:
-    case 2:
-    case 3:
-        passupOrDie(PGFAULTEXCEPT);
-        break;    
-    case 8:
-        systemcallHandler();
-        break;
-    default:
-        passupOrDie(GENERALEXCEPT);
-        break;
-    }
-}
-
-
