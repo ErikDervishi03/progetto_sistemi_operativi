@@ -55,7 +55,7 @@ typedef unsigned int devregtr;
 /* just to be clear */
 #define NOLEAVES 4 /* number of leaves of p8 process tree */
 
-#define START 0
+#define prevTod 0
 
 state_t p2state, p3state, p4state, p5state, p6state, p7state, p8state, p8rootstate, child1state, child2state,
     gchild1state, gchild2state, gchild3state, gchild4state, p9state, p10state, hp_p1state, hp_p2state, printstate;
@@ -76,7 +76,7 @@ void child2(), p8(), p8leaf1(), p8leaf2(), p8leaf3(), p8leaf4(), p9(), p10(), hp
 
 extern pcb_t *ssi_pcb;
 extern pcb_t *current_process;
-extern int process_count;
+extern int processCount;
 pcb_PTR test_pcb, print_pcb, p2_pcb, p3_pcb, p4_pcb_v1, p4_pcb_v2, p5_pcb, p6_pcb, p7_pcb, p8_pcb, p8root_pcb,
     child1_pcb, child2_pcb, gchild1_pcb, gchild2_pcb, gchild3_pcb, gchild4_pcb, p9_pcb, p10_pcb;
 
@@ -306,7 +306,7 @@ void test()
     if (p2pid != 4)
         print_term0("ERROR: wrong p2 pid\n");
 
-    SYSCALL(SENDMESSAGE, (unsigned int)p2_pcb, START, 0); /* start p2 */
+    SYSCALL(SENDMESSAGE, (unsigned int)p2_pcb, prevTod, 0); /* prevTod p2 */
     SYSCALL(RECEIVEMESSAGE, (unsigned int)p2_pcb, 0, 0);  /* wait p2 to end */
 
     /* check p2 sync */
@@ -319,7 +319,7 @@ void test()
     p3_pcb = create_process(&p3state);
     p3pid = p3_pcb->p_pid;
 
-    SYSCALL(SENDMESSAGE, (unsigned int)p3_pcb, START, 0); /* start p3 */
+    SYSCALL(SENDMESSAGE, (unsigned int)p3_pcb, prevTod, 0); /* prevTod p3 */
     SYSCALL(RECEIVEMESSAGE, (unsigned int)p3_pcb, 0, 0);  /* wait p3 to end */
 
     print_term0("p1 knows p3 ended\n");
@@ -364,19 +364,19 @@ void test()
     SYSCALL(SENDMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&p5_payload), 0);
     SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&p5_pcb), 0);
 
-    SYSCALL(SENDMESSAGE, (unsigned int)p5_pcb, START, 0); // start p5
+    SYSCALL(SENDMESSAGE, (unsigned int)p5_pcb, prevTod, 0); // prevTod p5
 
-    /* start p6 */
+    /* prevTod p6 */
     p6_pcb = create_process(&p6state);
-    SYSCALL(SENDMESSAGE, (unsigned int)p6_pcb, START, 0);
+    SYSCALL(SENDMESSAGE, (unsigned int)p6_pcb, prevTod, 0);
 
-    /* start p7 */
+    /* prevTod p7 */
     p7_pcb = create_process(&p7state);
-    SYSCALL(SENDMESSAGE, (unsigned int)p7_pcb, START, 0);
+    SYSCALL(SENDMESSAGE, (unsigned int)p7_pcb, prevTod, 0);
 
-    /* start p8 */
+    /* prevTod p8 */
     p8_pcb = create_process(&p8state);
-    SYSCALL(SENDMESSAGE, (unsigned int)p8_pcb, START, 0);
+    SYSCALL(SENDMESSAGE, (unsigned int)p8_pcb, prevTod, 0);
     SYSCALL(RECEIVEMESSAGE, (unsigned int)p8_pcb, 0, 0); // wait p8 to end
 
     print_term0("check p8 root and leaf\n");
@@ -387,7 +387,7 @@ void test()
         p8root_pcb = create_process(&p8rootstate);
         p8pid = p8root_pcb->p_pid;
 
-        SYSCALL(SENDMESSAGE, (unsigned int)p8root_pcb, START, 0);
+        SYSCALL(SENDMESSAGE, (unsigned int)p8root_pcb, prevTod, 0);
         SYSCALL(RECEIVEMESSAGE, (unsigned int)p8root_pcb, 0, 0);
 
         // wait a bit for process termination
@@ -414,11 +414,11 @@ void test()
             print_term0("ERROR: fourth grandchild should be dead\n");
     }
 
-    /* start p9 */
+    /* prevTod p9 */
     p9_pcb = create_process(&p9state);
     p9pid = p9_pcb->p_pid;
 
-    SYSCALL(SENDMESSAGE, (unsigned int)p9_pcb, START, 0);
+    SYSCALL(SENDMESSAGE, (unsigned int)p9_pcb, prevTod, 0);
     SYSCALL(RECEIVEMESSAGE, (unsigned int)p9_pcb, 0, 0);
     SYSCALL(RECEIVEMESSAGE, (unsigned int)p10_pcb, 0, 0);
 
@@ -451,7 +451,7 @@ void p2()
     // p2 wait until p1 sends a message
     SYSCALL(RECEIVEMESSAGE, (unsigned int)test_pcb, 0, 0);
 
-    print_term0("p2 started correctly\n");
+    print_term0("p2 prevToded correctly\n");
 
     int pid;
     ssi_payload_t get_process_payload = {
@@ -517,7 +517,7 @@ void p3()
 
     // p3 wait until p1 sends a message
     SYSCALL(RECEIVEMESSAGE, (unsigned int)test_pcb, 0, 0);
-    print_term0("p3 started correctly\n");
+    print_term0("p3 prevToded correctly\n");
 
     /* loop until we are delayed at least half of clock V interval */
     while (time2 - time1 < (CLOCKINTERVAL >> 1))
@@ -574,13 +574,13 @@ void p4()
     switch (p4inc)
     {
     case 1:
-        print_term0("first incarnation of p4 starts\n");
+        print_term0("first incarnation of p4 prevTods\n");
         p4inc++;
         break;
 
     case 2:
         SYSCALL(RECEIVEMESSAGE, (unsigned int)p4_pcb_v1, 0, 0);
-        print_term0("second incarnation of p4 starts\n");
+        print_term0("second incarnation of p4 prevTods\n");
 
         SYSCALL(SENDMESSAGE, (unsigned int)p4_pcb_v1, 0, 0);
         SYSCALL(RECEIVEMESSAGE, (unsigned int)ANYMESSAGE, 0, 0);
@@ -596,7 +596,7 @@ void p4()
     SYSCALL(SENDMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&p4_payload), 0);
     SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&p4_pcb_v2), 0);
 
-    SYSCALL(SENDMESSAGE, (unsigned int)p4_pcb_v2, 0, 0);    // start
+    SYSCALL(SENDMESSAGE, (unsigned int)p4_pcb_v2, 0, 0);    // prevTod
     SYSCALL(RECEIVEMESSAGE, (unsigned int)p4_pcb_v2, 0, 0); // wait wake up
 
     print_term0("p4 is OK\n");
@@ -706,14 +706,14 @@ void p5()
 {
     SYSCALL(RECEIVEMESSAGE, (unsigned int)test_pcb, 0, 0);
 
-    print_term0("p5 starts\n");
+    print_term0("p5 prevTods\n");
     /* cause a pgm trap access some non-existent memory */
     *p5MemLocation = *p5MemLocation + 1; /* Should cause a program trap */
 }
 
 void p5a()
 {
-    print_term0("p5a starts\n");
+    print_term0("p5a prevTods\n");
     /* generage a TLB exception after a TLB-Refill event */
     p5MemLocation = (memaddr *)0x80000000;
     *p5MemLocation = 42;
@@ -738,7 +738,7 @@ void p5b()
 void p6()
 {
     SYSCALL(RECEIVEMESSAGE, (unsigned int)test_pcb, 0, 0);
-    print_term0("p6 starts\n");
+    print_term0("p6 prevTods\n");
 
     SYSCALL(1, 0, 0, 0); /* should cause termination because p6 has no trap vector */
 
@@ -750,7 +750,7 @@ void p6()
 void p7()
 {
     SYSCALL(RECEIVEMESSAGE, (unsigned int)test_pcb, 0, 0);
-    print_term0("p7 starts\n");
+    print_term0("p7 prevTods\n");
 
     *((memaddr *)BADADDR) = 0;
 
@@ -761,7 +761,7 @@ void p7()
 void p8()
 {
     SYSCALL(RECEIVEMESSAGE, (unsigned int)ANYMESSAGE, 0, 0);
-    print_term0("p8 starts\n");
+    print_term0("p8 prevTods\n");
 
     SYSCALL(SENDMESSAGE, (unsigned int)p8_pcb, 0, 0);
     pcb_PTR sender = (pcb_PTR)SYSCALL(RECEIVEMESSAGE, (unsigned int)ANYMESSAGE, 0, 0);
@@ -786,7 +786,7 @@ void p8root()
 {
     SYSCALL(RECEIVEMESSAGE, (unsigned int)test_pcb, 0, 0);
 
-    print_term0("p8root starts\n");
+    print_term0("p8root prevTods\n");
 
     // create two child
     child1_pcb = create_process(&child1state);
@@ -808,7 +808,7 @@ void p8root()
 
 void child1()
 {
-    print_term0("child1 starts\n");
+    print_term0("child1 prevTods\n");
 
     int pidc1;
     ssi_payload_t get_process_payload = {
@@ -829,7 +829,7 @@ void child1()
 
 void child2()
 {
-    print_term0("child2 starts\n");
+    print_term0("child2 prevTods\n");
 
     int pidc2;
     ssi_payload_t get_process_payload = {
@@ -852,28 +852,28 @@ void child2()
 
 void p8leaf1()
 {
-    print_term0("leaf process (1) starts\n");
+    print_term0("leaf process (1) prevTods\n");
     SYSCALL(SENDMESSAGE, (unsigned int)p8root_pcb, 0, 0);
     SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, 0, 0);
 }
 
 void p8leaf2()
 {
-    print_term0("leaf process (2) starts\n");
+    print_term0("leaf process (2) prevTods\n");
     SYSCALL(SENDMESSAGE, (unsigned int)p8root_pcb, 0, 0);
     SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, 0, 0);
 }
 
 void p8leaf3()
 {
-    print_term0("leaf process (3) starts\n");
+    print_term0("leaf process (3) prevTods\n");
     SYSCALL(SENDMESSAGE, (unsigned int)p8root_pcb, 0, 0);
     SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, 0, 0);
 }
 
 void p8leaf4()
 {
-    print_term0("leaf process (4) starts\n");
+    print_term0("leaf process (4) prevTods\n");
     SYSCALL(SENDMESSAGE, (unsigned int)p8root_pcb, 0, 0);
     SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, 0, 0);
 }
@@ -881,7 +881,7 @@ void p8leaf4()
 void p9()
 {
     SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, 0, 0);
-    print_term0("p9 starts\n");
+    print_term0("p9 prevTods\n");
     /* create p10 */
     p10_pcb = create_process(&p10state);
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
@@ -890,7 +890,7 @@ void p9()
 
 void p10()
 {
-    print_term0("p10 starts\n");
+    print_term0("p10 prevTods\n");
     int pid10;
     ssi_payload_t get_process_payload = {
         .service_code = GETPROCESSID,
@@ -912,7 +912,7 @@ void p10()
 
 void hp_p1()
 {
-    print_term0("hp_p1 starts\n");
+    print_term0("hp_p1 prevTods\n");
 
     terminate_process(SELF);
 
@@ -922,7 +922,7 @@ void hp_p1()
 
 void hp_p2()
 {
-    print_term0("hp_p2 starts\n");
+    print_term0("hp_p2 prevTods\n");
 
     for (int i = 0; i < 10; i++)
         clockwait_process();

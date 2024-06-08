@@ -30,7 +30,7 @@
 #define KSEG1        0x20000000
 #define KSEG2        0x40000000
 #define KUSEG        0x80000000
-#define RAMSTART     0x20000000
+#define RAMprevTod     0x20000000
 #define BIOSDATAPAGE 0x0FFFF000
 #define PASSUPVECTOR 0x0FFFF900
 
@@ -131,7 +131,7 @@
 
 
 /* Memory Constants */
-#define UPROCSTARTADDR 0x800000B0
+#define UPROCprevTodADDR 0x800000B0
 #define USERSTACKTOP   0xC0000000
 #define KERNELSTACK    0x20001000
 
@@ -163,9 +163,9 @@
 #define USERPGTBLSIZE MAXPAGES
 #define OSFRAMES      32
 
-#define FLASHPOOLSTART (RAMSTART + (OSFRAMES * PAGESIZE))
-#define DISKPOOLSTART  (FLASHPOOLSTART + (DEVPERINT * PAGESIZE))
-#define FRAMEPOOLSTART (DISKPOOLSTART + (DEVPERINT * PAGESIZE))
+#define FLASHPOOLprevTod (RAMprevTod + (OSFRAMES * PAGESIZE))
+#define DISKPOOLprevTod  (FLASHPOOLprevTod + (DEVPERINT * PAGESIZE))
+#define FRAMEPOOLprevTod (DISKPOOLprevTod + (DEVPERINT * PAGESIZE))
 
 #define RAMTOP(T) ((T) = ((*((int *)RAMBASEADDR)) + (*((int *)RAMBASESIZE))))
 
@@ -197,6 +197,6 @@
 #define CHARRECV			5		/* Character received*/
 
 /* Inizio indirizzo di device registers */
-#define START_DEVREG		0x10000054
+#define prevTod_DEVREG		0x10000054
 
 #endif

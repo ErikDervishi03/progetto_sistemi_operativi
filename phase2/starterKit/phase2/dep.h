@@ -11,10 +11,9 @@
 #include "headers/msg.h"
 #include "debug.h"
 
-extern cpu_t start;
-extern int process_count;
+extern int processCount, softBlockCount, currPid;
 
-extern pcb_t* prova;
+extern cpu_t prevTod;
 
 extern struct list_head Ready_Queue;
 extern struct list_head Locked_disk;
@@ -25,13 +24,10 @@ extern struct list_head Locked_ethernet;
 extern struct list_head Locked_printer;
 extern struct list_head Locked_pseudo_clock;
 
-extern int pid_counter;
 extern pcb_t *current_process;
 
 extern struct list_head blockedPCBs[SEMDEVLEN - 1];
 extern struct list_head PseudoClockWP; // pseudo-clock waiting process
-
-extern int soft_blocked_count;
 
 extern pcb_t *ssi_pcb;
 
@@ -67,14 +63,6 @@ extern void SSILoop();
 
 extern int send(pcb_t *sender, pcb_t *dest, unsigned int payload);
 
-extern unsigned int getTOD();
-
-extern void updateCPUtime(pcb_t *p) ;
-
-extern void setIntervalTimer(unsigned int t);
-
-extern void setPLT(unsigned int t);
-
-extern unsigned int getPLT() ;
+extern void getDeltaTime(pcb_t *p) ;
 
 #endif
