@@ -1,201 +1,65 @@
-entrato in initial
-entrato in scheduler
-passo il controllo a ssi_pcb
-fdentro l'interrupt handler
-entrato in scheduler
-passo il controllo a current process
-entrato in test
-faccio la send
-faccio la receive
-prima di creare il processo
-faccio la send
-faccio la receive
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'interrupt handler
-entrato in scheduler
-passo il controllo a ssi_pcb
-dentro l'i
+epedDon't Panic.
+p2 started correctly
+p2 get pid successfully
+p2 is OK
+p1 knows p2 ended
+p3 started correctly
+p3 - CLOCKWAIT OK
+p3 - CPU time correctly maintained
+p1 knows p3 ended
+hp_p1 starts
+hp_p2 starts
+first incarnation of p4 starts
+second incarnation of p4 starts
+p4 is OK
+p1 knows p4's first incarnation ended
+p1 knows p4's second incarnation ended
+p5 starts
+p6 starts
+p7 starts
+p8 starts
+Bus Error (as expected): Access non-existent memory
+p8 ok
+p5a starts
+check p8 root and leaf
+Bus Error (as expected): Access non-existent memory
+p8root starts
+p5a starts
+child1 starts
+child2 starts
+Bus Error (as expected): Access non-existent memory
+leaf process (1) starts
+leaf process (2) starts
+leaf process (3) starts
+leaf process (4) starts
+p5a starts
+Bus Error (as expected): Access non-existent memory
+p5a starts
+Bus Error (as expected): Access non-existent memory
+p5a starts
+Bus Error (as expected): Access non-existent memory
+p8root starts
+p5a starts
+child1 starts
+child2 starts
+Bus Error (as expected): Access non-existent memory
+leaf process (1) starts
+leaf process (2) starts
+leaf process (3) starts
+leaf process (4) starts
+p5a starts
+Bus Error (as expected): Access non-existent memory
+p5a starts
+Bus Error (as expected): Access non-existent memory
+p5a starts
+Bus Error (as expected): Access non-existent memory
+p9 starts
+p5a starts
+p10 starts
+Bus Error (as expected): Access non-existent memory
+p9 and p10 ok
+p5a starts
+ERROR: all process child should be dead!
+Bus Error (as expected): Access non-existent memory
+A towel, it says, is about the most massively useful thing an interstellar hitchhiker can have.
+p

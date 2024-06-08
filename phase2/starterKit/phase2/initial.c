@@ -1,8 +1,49 @@
-#include "const.h"
 #include "dep.h"
-#include "headers/pcb.h"
-#include <umps3/umps/libumps.h>
 
+/*
+ * semplice libreria che funge da wrapper 
+ * per le funzioni di utilizzo dei vari timer
+ */
+
+// ritorna il valore del TOD al momento della chiamata
+unsigned int getTOD() {
+    unsigned int tmp;
+    STCK(tmp);
+    return tmp;
+}
+
+// aggiorna p_time del processo p
+void updateCPUtime(pcb_t *p) {
+    int end = getTOD();
+    p->p_time += (end - start);
+    start = end;
+}
+
+// funzione che imposta il valore dell'interval timer
+void setIntervalTimer(unsigned int t) {
+    LDIT(t);
+}
+
+// funzione che imposta il valore del processor local timer
+void setPLT(unsigned int t) {
+    setTIMER(t);
+}
+
+// funzione che permette di ottenere il valore del processor local timer
+unsigned int getPLT() {
+    return getTIMER();
+}
+
+void uTLB_RefillHandler() {
+setENTRYHI(0x80000000);
+setENTRYLO(0x00000000);
+TLBWR();
+LDST((state_t*) 0x0FFFF000);
+}
+
+extern void test();
+
+LIST_HEAD(Ready_Queue);
 LIST_HEAD(Locked_disk);
 LIST_HEAD(Locked_flash);
 LIST_HEAD(Locked_terminal_recv);
@@ -11,68 +52,107 @@ LIST_HEAD(Locked_ethernet);
 LIST_HEAD(Locked_printer);
 LIST_HEAD(Locked_pseudo_clock);
 
+
+int process_count;
+int soft_blocked_count;
+int start;
 int pid_counter;
-cpu_t prevTOD;
-unsigned int processCount, softBlockCount;
+
+pcb_t *current_process;
 pcb_t *ssi_pcb;
 
-struct list_head ready_queue;
-struct list_head msg_queue_list;
-pcb_t *current_process;
+// funzione che si occupa di inizializzare il passupvector ad un indirizzo specifico e 
+// memorizza uTLB_RefillHandler e del exceptionHandler.
+void initPassupVector(){
+    passupvector_t *passupv;
+    passupv = (passupvector_t *) PASSUPVECTOR;
 
-struct list_head blockedPCBs[SEMDEVLEN - 1];
-struct list_head PseudoClockWP; // pseudo-clock waiting process
+    passupv-> tlb_refill_handler  = (memaddr) uTLB_RefillHandler;
+    passupv->tlb_refill_stackPtr  = (memaddr) KERNELSTACK;
+    passupv-> exception_handler  = (memaddr) exceptionHandler;
+    passupv->exception_stackPtr   = (memaddr) KERNELSTACK;
+}
 
-extern void test ();
 
-void memcpy(void *dest, void *src, unsigned int n)  
-{  
-  // Typecast src and dest addresses to (char *)  
-  char *csrc = (char *)src;  
-  char *cdest = (char *)dest;  
+
+// Funzione che inserisce nella Ready Queue i processi del SSI e del test. Questi avranno lo status settato 
+// in modo da avere la maschera dell'interrupt abilitata, l'interval timer abilitato e che siano in 
+// modalita' kernel. Avranno rispettivamente pid 1 e 2.
+void initFirstProcesses(){
+    //  6. Instantiate a first process, place its PCB in the Ready Queue, and increment Process Count.
+    ssi_pcb = allocPcb();
+    ssi_pcb->p_pid = 1;
+    ssi_pcb->p_supportStruct = NULL;
+
+    // pongo tutti i Bit della maschera a 0 (ALLOFF) e accendo quelli descritti a inizio funzione
+    ssi_pcb->p_s.status = ALLOFF | IEPON | IMON | TEBITON;
+
+    // setto SP in modo da porre sull'ultimo frame della RAM il processo SSI attraverso RAMTOP
+    RAMTOP(ssi_pcb->p_s.reg_sp);
+    ssi_pcb->p_s.pc_epc = (memaddr) SSILoop;
+
+    // general purpose register t9
+    ssi_pcb-> p_s.gpr[24] = ssi_pcb-> p_s.pc_epc;
     
-  // Copy contents of src[] to dest[]  
-  for (int i=0; i<n; i++)  
-      cdest[i] = csrc[i];  
+    // inserisco il processo nella ReadyQueue
+    insertProcQ(&Ready_Queue, ssi_pcb);
+    
+    // incremento il Process Counter
+    ++process_count;
+
+
+    //  7.  
+    // Creo un nuovo processo, lo inserisco nella Ready Queue, e  incremento il Process Counter
+    pcb_t *toTest = allocPcb();
+    toTest->p_pid = 2;
+    toTest->p_supportStruct = NULL;
+
+    // pongo tutti i Bit della maschera a 0 (ALLOFF) e accendo quelli descritti a inizio funzione
+    toTest->p_s.status = ALLOFF | IEPON | IMON | TEBITON;
+
+    // setto SP in modo da porre sull'ultimo frame della RAM il processo test attraverso RAMTOP - 2 FRAME
+    RAMTOP(toTest->p_s.reg_sp);
+    toTest->p_s.reg_sp -= (2 * PAGESIZE);
+    toTest->p_s.pc_epc = (memaddr) test;
+
+    // general purpose register t9
+    toTest-> p_s.gpr[24] = toTest-> p_s.pc_epc;
+
+    // inserisco il processo nella ReadyQueue
+    insertProcQ(&Ready_Queue, toTest);
+
+    // incremento il Process Counter
+    ++process_count;
+
 }
 
-void uTLB_RefillHandler() {
-  setENTRYHI(0x80000000);
-  setENTRYLO(0x00000000);
-  TLBWR();
-  LDST((state_t*) 0x0FFFF000);
-}
 
-cpu_t getTimeElapsed () {
-  cpu_t currTOD;
-  STCK (currTOD);
-  cpu_t getTimeElapsed = currTOD - prevTOD;
-  STCK (prevTOD);
-  return getTimeElapsed;
-}
+/* 
+ *main 
+*/
+void main(int argc, char const *argv[])
+{
+    //  2. Passup Vector
+    initPassupVector();
 
-int main(){
+    //  3. Inizzializzo le data structures del livello 2 (Phase 1):
+    initPcbs();
+    initMsgs();
 
-  term_puts("entrato in initial\n");
- 
-  passupvector_t *passupvector = (passupvector_t *) PASSUPVECTOR;
-  passupvector->tlb_refill_handler = (memaddr) uTLB_RefillHandler;
-  passupvector->tlb_refill_stackPtr = (memaddr) KERNELSTACK;
-  passupvector->exception_handler = (memaddr) exceptionHandler;
-  passupvector->exception_stackPtr = (memaddr) KERNELSTACK;
-  
-  initPcbs();
-  initMsgs();
+    //  4. 
+    //  intero che indica il numero dei processi totali
+    process_count = 0;
 
-  /*initialize all the previously declared variables*/
-  processCount = 0;
-  softBlockCount = 0;
-  pid_counter = 0;
-  mkEmptyProcQ(&ready_queue);
-  current_process = NULL; 
-  mkEmptyProcQ(&PseudoClockWP);
-  mkEmptyProcQ(&msg_queue_list);
+    //  numero dei processi bloccati non ancora terminati
+    soft_blocked_count = 0;
 
+    // variabile globale che viene usata per creare nuovi processi; viene incrementata per ogni processo in modo da assegnarli tutti in maniera diversa
+    pid_counter = 3;    //pid 1 is SSI, pid 2 is test
+
+    //  Lista dei processi in "ready" state
+    mkEmptyProcQ(&Ready_Queue);
+
+    //  liste dei processi bloccati per ogni external (sub)device
     mkEmptyProcQ(&Locked_disk);
     mkEmptyProcQ(&Locked_flash);
     mkEmptyProcQ(&Locked_terminal_recv);
@@ -81,56 +161,13 @@ int main(){
     mkEmptyProcQ(&Locked_printer);
     mkEmptyProcQ(&Locked_pseudo_clock);
 
-  for(int i = 0; i < SEMDEVLEN - 1; i++) {
-    INIT_LIST_HEAD(&blockedPCBs[i]);
-  }
-  
-  /*Load the system-wide Interval Timer with 100 
-    milliseconds (constant PSECOND)*/
-  LDIT(PSECOND);
 
-  /*Instantiate a first process*/
-  /*instantiate ssi_pcb*/
+    //  5. carico l'Interval Timer a 100 ms
+    setIntervalTimer(PSECOND);
 
-  ssi_pcb = allocPcb();
+    // inizializzo i primi due processi (punti 6 e 7)
+    initFirstProcesses();
 
-  ssi_pcb->p_s.status = ALLOFF | IEPON | IMON | TEBITON;
-
-  RAMTOP(ssi_pcb->p_s.reg_sp);
-  /*PC set to the address of SSI_function_entry_point*/
-  ssi_pcb->p_s.pc_epc = (memaddr) SSI_function_entry_point;
-  /*henever one assigns a value to the PC one must also assign the
-  same value to the general purpose register t9 */
-  ssi_pcb->p_s.reg_t9 =  (memaddr) SSI_function_entry_point;
-
-  insertProcQ(&ready_queue, ssi_pcb);
-
-  /*instantiate a second process*/
-
-  pcb_t *entryTest = allocPcb ();
-  
-  /*interrupts enabled, the processor Local Timer enabled, kernel-mode on*/
-  // not sure about this, what status register should be set to?
-  entryTest->p_s.status = ALLOFF | IECON | IEPON | TEBITON;
-
-  /* SP set to RAMTOP - (2 * FRAMESIZE) (i.e.
-    use the last RAM frame for its stack minus 
-    the space needed by the first process*/
-  unsigned int ramTop;
-
-  RAMTOP(ramTop);
-
-  entryTest->p_s.reg_sp = ramTop - (2 * PAGESIZE);
-
-  entryTest->p_s.pc_epc = (memaddr) test;
-  entryTest->p_s.reg_t9 = (memaddr) test;
-
-  insertProcQ (&ready_queue, entryTest);
-  
-  processCount = 2;
-  
-  scheduler (); 
-
-  return 0;
-
+    //  8. chiamo lo Scheduler.
+    scheduler();
 }

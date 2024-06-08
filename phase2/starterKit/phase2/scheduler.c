@@ -1,42 +1,30 @@
-#include "const.h"
 #include "dep.h"
-#include "headers/pcb.h"
-#include <umps3/umps/const.h>
-#include <umps3/umps/libumps.h>
-#include <umps3/umps/types.h>
 
 void scheduler(){
-    term_puts("entrato in scheduler\n");
-    current_process = removeProcQ(&ready_queue);
+    if(emptyProcQ(&Ready_Queue) == 0){
+        //  1. Se c'e' almeno un processo pronto ad essere eseguito, lo prendo dalla Ready e lo assegno al current_process.
+        current_process = removeProcQ(&Ready_Queue);
 
-    if(current_process){
-        //getRemainTime(current_process);
-        
-        setTIMER(TIMESLICE);
-        if(current_process == ssi_pcb)
-            term_puts("passo il controllo a ssi_pcb\n");
-        else
-            term_puts("passo il controllo a current process\n");
+        //  2. carico il processo localt timer a 5ms [Section 4.1.4-pops].
+        setPLT(TIMESLICE * (*((cpu_t *)TIMESCALEADDR)));
 
-        if(current_process == print_pcb) term_puts("current_process == print_pcb\n");
-        LDST(&current_process->p_s);
+        //  3. Eseguo un Load Processor State (LDST) sul Current Process (p_s).
+        start = getTOD(); 
+        LDST(&(current_process->p_s));
     }
     else{
-        if(processCount == 1) {
+
+        // nel caso la Ready Queue dovesse risultare vuota si entra in questo ramo else in cui avviena la deadlock detection
+        if(process_count == 1) {
             HALT();
         }
-        else if(processCount > 0 && softBlockCount > 0 ){
+        else if(process_count > 0 && soft_blocked_count > 0 ){
             current_process = NULL;
             setSTATUS(ALLOFF | IECON | IMON);
             WAIT();
         }
-        else if(processCount > 0 && softBlockCount == 0){
-            term_puts("vado in panic nello scheduler\n");
+        else if(process_count > 0 && soft_blocked_count == 0){
             PANIC();
         }
     }
 }
-
-
-
-

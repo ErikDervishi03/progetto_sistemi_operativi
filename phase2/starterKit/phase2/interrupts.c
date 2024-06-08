@@ -1,20 +1,11 @@
 #include "dep.h"
-#include <umps3/umps/const.h>
-
-
-void getRemainTime(pcb_t *target) {
-    int currTOD;
-    STCK(currTOD);
-    target->p_time += (currTOD - prevTOD);
-    prevTOD = currTOD;
-}
 
 /*funzione che tramite il campo dev_no (device number) rimuove */
 static pcb_t *unblockProcessByDeviceNumber(int device_number, struct list_head *list) {
     //tramite il campo del dev_no (device number) del pcb, lo rimuovo dalla lista
     pcb_t* tmp;
     list_for_each_entry(tmp, list, p_list) {
-        if(tmp->numero_dispositivo == device_number)
+        if(tmp->dev_no == device_number)
             return outProcQ(list, tmp);
     }
     return NULL;
@@ -91,12 +82,9 @@ static void deviceInterruptHandler(int line, int cause, state_t *exception_state
     }
     if(unblocked_pcb) {
         unblocked_pcb->p_s.reg_v0 = device_status;
-        msg_t *msg = allocMsg();
-        msg->m_sender = ssi_pcb;
-        msg->m_payload = (memaddr)(device_status);
-        insertMessage(&(unblocked_pcb->msg_inbox), msg); 
-        insertProcQ(&ready_queue, unblocked_pcb); 
-        softBlockCount--;
+        send(ssi_pcb, unblocked_pcb, (memaddr)(device_status)); //invio messaggio al processo sbloccato
+        insertProcQ(&Ready_Queue, unblocked_pcb); 
+        soft_blocked_count--;
     }
 
     if(current_process) 
@@ -107,45 +95,31 @@ static void deviceInterruptHandler(int line, int cause, state_t *exception_state
 
 /*funzione che gestisce l'interrupt causato dal processo local timer*/
 static void localTimerInterruptHandler(state_t *exception_state) {
-  setTIMER(TIMESLICE);
-  exception_state = (state_t *)BIOSDATAPAGE;
-  current_process->p_s = *exception_state;
-  insertProcQ(&ready_queue, current_process);
-  getRemainTime(current_process);
-  
-  scheduler();
+    setPLT(-1); //ACK interrupt
+    updateCPUtime(current_process);
+    saveState(&(current_process->p_s), exception_state);
+    insertProcQ(&Ready_Queue, current_process);
+    scheduler();
 }
 
 /*funzione che gestisce l'interrupt causato dall'interval timer*/
 static void pseudoClockInterruptHandler(state_t* exception_state) {
-  LDIT(PSECOND);
-  pcb_PTR pcb = NULL;
-  while ((pcb = removeProcQ(&PseudoClockWP))) { 
-    insertProcQ(&ready_queue, pcb);
+    setIntervalTimer(PSECOND); //ACK
+    pcb_t *unblocked_pcb;
+    while ((unblocked_pcb = removeProcQ(&Locked_pseudo_clock)) != NULL) {
+      //sblocco di tutti i processi in attesa dello pseudoclock
+      send(ssi_pcb, unblocked_pcb, 0);
+      insertProcQ(&Ready_Queue, unblocked_pcb);
+      soft_blocked_count--;
+    }
 
-    msg_PTR msg = allocMsg();
-    msg->m_sender = ssi_pcb;
-    msg->m_payload = 0;
-    insertMessage(&pcb->msg_inbox, msg);
-    softBlockCount--;
-  }
-
-  if (current_process == NULL) {
-
-    scheduler();
-
-  }else{
-
-    getRemainTime(current_process);
-
-    LDST((state_t *)BIOSDATAPAGE);
-  }
-
-
+    if(current_process) 
+      LDST(exception_state);
+    else 
+      scheduler();
 }
 
 void interruptHandler(int cause, state_t *exception_state) {
-      term_puts("dentro l'interrupt handler\n");
     //riconoscimento linea interrupt in ordine di priorità
     if (CAUSE_IP_GET(cause, IL_CPUTIMER))
         localTimerInterruptHandler(exception_state);
