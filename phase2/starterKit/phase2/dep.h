@@ -26,8 +26,6 @@ extern struct list_head blockedForClock;
 
 extern pcb_t *current_process;
 
-extern struct list_head PseudoClockWP; // pseudo-clock waiting process
-
 extern pcb_t *ssi_pcb;
 
 extern struct list_head pcbFree_h;
@@ -56,7 +54,7 @@ extern void saveState(state_t* dest, state_t* to_copy);
 
 extern void SSI_entry_point();
 
-extern int send(pcb_t *sender, pcb_t *dest, unsigned int payload);
+extern int sendMessage(pcb_t *sender, pcb_t *dest, unsigned int payload);
 
 extern void getDeltaTime(pcb_t *p) ;
 

@@ -1,33 +1,21 @@
 #include "dep.h"
 
-void saveState(state_t* dest, state_t* to_copy) {
-    dest->entry_hi = to_copy->entry_hi;
-    dest->cause = to_copy->cause;
-    dest->status = to_copy->status;
-    dest->pc_epc = to_copy->pc_epc;
-    for(int i = 0; i < STATE_GPR_LEN; i++) 
-        dest->gpr[i] = to_copy->gpr[i];
-    dest->hi = to_copy->hi;
-    dest->lo = to_copy->lo;
-}
-
-int send(pcb_t *sender, pcb_t *dest, unsigned int payload) {
-    msg_t *msg = allocMsg();
-    if(!msg)
-        return MSGNOGOOD;
-    msg->m_sender = sender;
-    msg->m_payload = payload;
-    insertMessage(&(dest->msg_inbox), msg); 
+ int isPCBInList(pcb_t* pcb, struct list_head *list) {
+    pcb_t *temp;
+    list_for_each_entry(temp, list, p_list) {
+        if (pcb == temp)
+            return 1;
+    }
     return 0;
 }
 
-static void passUpOrDie(int i, state_t *exception_state) {
-    if(current_process) {
-        if(current_process->p_supportStruct != NULL) {
-            saveState(&(current_process->p_supportStruct->sup_exceptState[i]), exception_state);
-            LDCXT(current_process->p_supportStruct->sup_exceptContext[i].stackPtr,        
-                  current_process->p_supportStruct->sup_exceptContext[i].status,
-                  current_process->p_supportStruct->sup_exceptContext[i].pc);
+void handleException(int exceptionType, state_t *exceptionState) {
+    if (current_process) {
+        if (current_process->p_supportStruct != NULL) {
+            saveState(&(current_process->p_supportStruct->sup_exceptState[exceptionType]), exceptionState);
+            LDCXT(current_process->p_supportStruct->sup_exceptContext[exceptionType].stackPtr,        
+                  current_process->p_supportStruct->sup_exceptContext[exceptionType].status,
+                  current_process->p_supportStruct->sup_exceptContext[exceptionType].pc);
         } else {
             ssi_terminate_process(current_process);
             scheduler();
@@ -35,87 +23,105 @@ static void passUpOrDie(int i, state_t *exception_state) {
     }
 }
 
-static int findPCB(pcb_t* p, struct list_head *list) {
-    pcb_t *tmp;
-    list_for_each_entry(tmp, list, p_list) {
-        if(p == tmp)
-            return 1;
-    }
+void saveState(state_t* destination, state_t* source) {
+    destination->entry_hi = source->entry_hi;
+    destination->pc_epc = source->pc_epc;
+    destination->hi = source->hi;
+    destination->lo = source->lo;
+    destination->cause = source->cause;
+    destination->status = source->status;
+    
+    for (int i = 0; i < STATE_GPR_LEN; i++) 
+        destination->gpr[i] = source->gpr[i];
+}
+
+
+int sendMessage(pcb_t *sender, pcb_t *receiver, unsigned int data) {
+    msg_t *message = allocMsg();
+    if (!message)
+        return MSGNOGOOD;
+    message->m_payload = data;
+    message->m_sender = sender;
+    insertMessage(&(receiver->msg_inbox), message); 
     return 0;
 }
 
-static void syscallExceptionHandler(state_t *exception_state) {
-    if((exception_state->status << 30) >> 31) {
-        exception_state->cause = (exception_state->cause & CLEAREXECCODE) | (EXC_RI << CAUSESHIFT);
-        passUpOrDie(GENERALEXCEPT, exception_state);
+void syscallHandler(state_t *exceptionState) {
+    if ((exceptionState->status << 30) >> 31) {
+        exceptionState->cause = (exceptionState->cause & CLEAREXECCODE) | (EXC_RI << CAUSESHIFT);
+        handleException(GENERALEXCEPT, exceptionState);
     } else {
-        if(exception_state->reg_a0 == SENDMESSAGE) {
-            int nogood;
-            int ready;
-            int not_exists;
-            pcb_t *dest = (pcb_t *)(exception_state->reg_a1);
-            ready = findPCB(dest, &ready_queue);
-            not_exists = findPCB(dest, &pcbFree_h);
+        if (exceptionState->reg_a0 == SENDMESSAGE) {
+            int msgResult;
+            int isReady;
+            int doesNotExist;
+            pcb_t *destProc = (pcb_t *)(exceptionState->reg_a1);
+            isReady = isPCBInList(destProc, &ready_queue);
+            doesNotExist = isPCBInList(destProc, &pcbFree_h);
 
-            if(not_exists) 
-                exception_state->reg_v0 = DEST_NOT_EXIST;  
-            else if(ready || dest == current_process) {
-                nogood = send(current_process, dest, exception_state->reg_a2);
-                exception_state->reg_v0 = nogood;
+            if (doesNotExist) {
+                exceptionState->reg_v0 = DEST_NOT_EXIST;
             } else {
-                nogood = send(current_process, dest, exception_state->reg_a2);
-                insertProcQ(&ready_queue, dest);
-                exception_state->reg_v0 = nogood;
+                msgResult = sendMessage(current_process, destProc, exceptionState->reg_a2);
+                if (isReady || destProc == current_process) {
+                    exceptionState->reg_v0 = msgResult;
+                } else {
+                    insertProcQ(&ready_queue, destProc);
+                    exceptionState->reg_v0 = msgResult;
+                }
             }
 
-            exception_state->pc_epc += WORDLEN;
-            LDST(exception_state);
-        } else if(exception_state->reg_a0 == RECEIVEMESSAGE) {
-            struct list_head *msg_inbox = &(current_process->msg_inbox);
-            unsigned int from = exception_state->reg_a1;
-            msg_t *msg = popMessage(msg_inbox, (from == ANYMESSAGE ? NULL : (pcb_t *)(from)));
+            exceptionState->pc_epc += WORDLEN;
+            LDST(exceptionState);
+        } else if (exceptionState->reg_a0 == RECEIVEMESSAGE) {
+            unsigned int fromProc = exceptionState->reg_a1;
+            struct list_head *inbox = &(current_process->msg_inbox);
+            msg_t *message = popMessage(inbox, (fromProc == ANYMESSAGE ? NULL : (pcb_t *)(fromProc)));
 
-            if(!msg) {
-                saveState(&(current_process->p_s), exception_state);
+            if (!message) {
+                saveState(&(current_process->p_s), exceptionState);
                 getDeltaTime(current_process);
                 scheduler();
             } else {
-                exception_state->reg_v0 = (memaddr)(msg->m_sender);
-                if(msg->m_payload != (unsigned int)NULL) {
-                    unsigned int *a2 = (unsigned int *)exception_state->reg_a2;
-                    *a2 = msg->m_payload;
+                exceptionState->reg_v0 = (memaddr)(message->m_sender);
+                if (message->m_payload != (unsigned int)NULL) {
+                    unsigned int *reg_a2_ptr = (unsigned int *)exceptionState->reg_a2;
+                    *reg_a2_ptr = message->m_payload;
                 }
-                freeMsg(msg);
-                exception_state->pc_epc += WORDLEN;
-                LDST(exception_state);
+                freeMsg(message);
+                exceptionState->pc_epc += WORDLEN;
+                LDST(exceptionState);
             }
-        } else if(exception_state->reg_a0 >= 1) {
-            passUpOrDie(GENERALEXCEPT, exception_state);
+        } else if (exceptionState->reg_a0 >= 1) {
+            handleException(GENERALEXCEPT, exceptionState);
         }
     }
 }
 
 void exceptionHandler() {
-    state_t *exception_state = (state_t *)BIOSDATAPAGE;
-    int cause = getCAUSE();
+    state_t *currentExceptionState = (state_t *)BIOSDATAPAGE;
+    int currentCause = getCAUSE();
+    int exceptionCode = (currentCause & GETEXECCODE) >> CAUSESHIFT;
 
-    switch((cause & GETEXECCODE) >> CAUSESHIFT) {
+    switch (exceptionCode) {
         case IOINTERRUPTS:
-            interruptHandler(cause, exception_state);
+            interruptHandler(currentCause, currentExceptionState);
             break;
         case 1 ... 3:
-            passUpOrDie(PGFAULTEXCEPT, exception_state);
+            handleException(PGFAULTEXCEPT, currentExceptionState);
             break;
         case SYSEXCEPTION:
-            syscallExceptionHandler(exception_state);
+            syscallHandler(currentExceptionState);
             break;
-        case 4 ... 7:
-            passUpOrDie(GENERALEXCEPT, exception_state);
+        case 4 ... 7: case 9 ... 12:
+            handleException(GENERALEXCEPT, currentExceptionState);
             break;
-        case 9 ... 12:
-            passUpOrDie(GENERALEXCEPT, exception_state);
-            break;
-        default: 
+        default:
             PANIC();
+            break;
     }
 }
+
+
+
+ 

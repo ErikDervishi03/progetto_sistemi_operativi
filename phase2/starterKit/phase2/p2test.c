@@ -178,7 +178,7 @@ void test()
     term_puts("entrato in test\n");
 
     test_pcb = current_process;
-    // test send and receive
+    // test sendMessage and receive
     SYSCALL(SENDMESSAGE, (unsigned int)test_pcb, 0, 0);
     pcb_PTR sender = (pcb_PTR)SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, 0, 0);
     
