@@ -59,8 +59,6 @@ typedef struct pcb_t
 
     /* process id */
     int p_pid;
-
-    int dev_no;
 } pcb_t, *pcb_PTR;
 
 /* message entry type */

@@ -8,12 +8,10 @@ void addrToDevice(memaddr command_address, pcb_t *process) {
     for (int j = 0; j < N_DEV_PER_IL; j++) {
         termreg_t *base_address = (termreg_t *)DEV_REG_ADDR(IL_TERMINAL, j);
         if (command_address == (memaddr)&(base_address->recv_command)) {
-            process->dev_no = j;
             outProcQ(&ready_queue, process);
             insertProcQ(&blockedForRecv, process);
             return;
         } else if (command_address == (memaddr)&(base_address->transm_command)) {
-            process->dev_no = j;
             outProcQ(&ready_queue, process);
             insertProcQ(&blockedForTransm, process);
             return;
@@ -24,7 +22,6 @@ void addrToDevice(memaddr command_address, pcb_t *process) {
         for (int j = 0; j < N_DEV_PER_IL; j++) {
             dtpreg_t *base_address = (dtpreg_t *)DEV_REG_ADDR(i, j);
             if (command_address == (memaddr)&(base_address->command)) {
-                process->dev_no = j;
                 outProcQ(&ready_queue, process);
                 insertProcQ(&blockedForDevice[EXT_IL_INDEX(i)], process);
                 return;
