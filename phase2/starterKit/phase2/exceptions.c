@@ -54,7 +54,7 @@ static void syscallExceptionHandler(state_t *exception_state) {
             int ready;
             int not_exists;
             pcb_t *dest = (pcb_t *)(exception_state->reg_a1);
-            ready = findPCB(dest, &Ready_Queue);
+            ready = findPCB(dest, &ready_queue);
             not_exists = findPCB(dest, &pcbFree_h);
 
             if(not_exists) 
@@ -64,7 +64,7 @@ static void syscallExceptionHandler(state_t *exception_state) {
                 exception_state->reg_v0 = nogood;
             } else {
                 nogood = send(current_process, dest, exception_state->reg_a2);
-                insertProcQ(&Ready_Queue, dest);
+                insertProcQ(&ready_queue, dest);
                 exception_state->reg_v0 = nogood;
             }
 

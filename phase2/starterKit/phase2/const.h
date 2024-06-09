@@ -196,4 +196,6 @@
 /* Inizio indirizzo di device registers */
 #define prevTod_DEVREG		0x10000054
 
+#define NOSSIRESPONSE -1
+
 #endif

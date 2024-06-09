@@ -39,11 +39,11 @@ static void deviceInterruptHandler(int line, int cause, state_t *exception_state
         if(((device_register->transm_status) & 0x000000FF) == 5) {
             device_status = device_register->transm_status;
             device_register->transm_command = ACK;
-            unblocked_pcb = unblockProcessByDeviceNumber(device_number, &Locked_terminal_transm);
+            unblocked_pcb = unblockProcessByDeviceNumber(device_number, &blockedForTransm);
         } else {
             device_status = device_register->recv_status;
             device_register->recv_command = ACK;
-            unblocked_pcb = unblockProcessByDeviceNumber(device_number, &Locked_terminal_recv);
+            unblocked_pcb = unblockProcessByDeviceNumber(device_number, &blockedForRecv);
         }
     } else {
         dtpreg_t *device_register = (dtpreg_t *)DEV_REG_ADDR(line, device_number);
@@ -51,16 +51,16 @@ static void deviceInterruptHandler(int line, int cause, state_t *exception_state
         device_register->command = ACK;
         switch (line) {
             case IL_DISK:
-                unblocked_pcb = unblockProcessByDeviceNumber(device_number, &Locked_disk);
+                unblocked_pcb = unblockProcessByDeviceNumber(device_number, &blockedForDisk);
                 break;
             case IL_FLASH:
-                unblocked_pcb = unblockProcessByDeviceNumber(device_number, &Locked_flash);
+                unblocked_pcb = unblockProcessByDeviceNumber(device_number, &blockedForFlash);
                 break;
             case IL_ETHERNET:
-                unblocked_pcb = unblockProcessByDeviceNumber(device_number, &Locked_ethernet);
+                unblocked_pcb = unblockProcessByDeviceNumber(device_number, &blockedForEthernet);
                 break;
             case IL_PRINTER:
-                unblocked_pcb = unblockProcessByDeviceNumber(device_number, &Locked_printer);
+                unblocked_pcb = unblockProcessByDeviceNumber(device_number, &blockedForPrinter);
                 break;
             default:
                 unblocked_pcb = NULL;
@@ -70,7 +70,7 @@ static void deviceInterruptHandler(int line, int cause, state_t *exception_state
     if(unblocked_pcb) {
         unblocked_pcb->p_s.reg_v0 = device_status;
         send(ssi_pcb, unblocked_pcb, (memaddr)(device_status));
-        insertProcQ(&Ready_Queue, unblocked_pcb); 
+        insertProcQ(&ready_queue, unblocked_pcb); 
         softBlockCount--;
     }
 
@@ -84,16 +84,16 @@ static void localTimerInterruptHandler(state_t *exception_state) {
     setTIMER(-1);
     getDeltaTime(current_process);
     saveState(&(current_process->p_s), exception_state);
-    insertProcQ(&Ready_Queue, current_process);
+    insertProcQ(&ready_queue, current_process);
     scheduler();
 }
 
 static void pseudoClockInterruptHandler(state_t* exception_state) {
     LDIT(PSECOND);
     pcb_t *unblocked_pcb;
-    while ((unblocked_pcb = removeProcQ(&Locked_pseudo_clock)) != NULL) {
+    while ((unblocked_pcb = removeProcQ(&blockedForClock)) != NULL) {
         send(ssi_pcb, unblocked_pcb, 0);
-        insertProcQ(&Ready_Queue, unblocked_pcb);
+        insertProcQ(&ready_queue, unblocked_pcb);
         softBlockCount--;
     }
 

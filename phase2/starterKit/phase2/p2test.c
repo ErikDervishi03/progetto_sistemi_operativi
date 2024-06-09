@@ -423,7 +423,6 @@ void test()
     SYSCALL(RECEIVEMESSAGE, (unsigned int)p10_pcb, 0, 0);
 
     terminate_process(p9_pcb);
-
     // check test_pcb child's length
     struct list_head *pos;
     int c = 0;

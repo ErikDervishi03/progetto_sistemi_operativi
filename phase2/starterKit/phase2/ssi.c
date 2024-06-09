@@ -1,146 +1,152 @@
+#include "const.h"
 #include "dep.h"
+#include "headers/pcb.h"
+#include <umps3/umps/const.h>
 
-static void blockProcessOnDevice(pcb_t* p, int line, int term) {
-    outProcQ(&Ready_Queue, p);
-    switch (line) {
-        case IL_DISK:
-            insertProcQ(&Locked_disk, p);
-            break;
-        case IL_FLASH:
-            insertProcQ(&Locked_flash, p);
-            break;
-        case IL_ETHERNET:
-            insertProcQ(&Locked_ethernet, p);
-            break;
-        case IL_PRINTER:
-            insertProcQ(&Locked_printer, p);
-            break;
-        case IL_TERMINAL:
-            insertProcQ((term > 0) ? &Locked_terminal_transm : &Locked_terminal_recv, p);
-            break;
-        default:
-            break;
+void blockProcessOnDevice(pcb_t* process, int line, int term) {
+    outProcQ(&ready_queue, process);
+    if (line == IL_DISK) {
+        insertProcQ(&blockedForDisk, process);
+    } else if (line == IL_FLASH) {
+        insertProcQ(&blockedForFlash, process);
+    } else if (line == IL_ETHERNET) {
+        insertProcQ(&blockedForEthernet, process);
+    } else if (line == IL_PRINTER) {
+        insertProcQ(&blockedForPrinter, process);
+    } else if (line == IL_TERMINAL) {
+        if (term > 0) {
+            insertProcQ(&blockedForTransm, process);
+        } else {
+            insertProcQ(&blockedForRecv, process);
+        }
     }
 }
 
-static void addrToDevice(memaddr command_address, pcb_t *p) {
-    for (int j = 0; j < 8; j++) {
+void addrToDevice(memaddr command_address, pcb_t *process) {
+    for (int j = 0; j < N_DEV_PER_IL; j++) {
         termreg_t *base_address = (termreg_t *)DEV_REG_ADDR(7, j);
         if (command_address == (memaddr)&(base_address->recv_command)) {
-            p->dev_no = j;
-            blockProcessOnDevice(p, 7, 0);
+            process->dev_no = j;
+            blockProcessOnDevice(process, 7, 0);
             return;
         } else if (command_address == (memaddr)&(base_address->transm_command)) {
-            p->dev_no = j;
-            blockProcessOnDevice(p, 7, 1);
+            process->dev_no = j;
+            blockProcessOnDevice(process, 7, 1);
             return;
         }
     }
     for (int i = 3; i < 7; i++) {
-        for (int j = 0; j < 8; j++) {
+        for (int j = 0; j < N_DEV_PER_IL; j++) {
             dtpreg_t *base_address = (dtpreg_t *)DEV_REG_ADDR(i, j);
             if (command_address == (memaddr)&(base_address->command)) {
-                p->dev_no = j;
-                blockProcessOnDevice(p, i, -1);
+                process->dev_no = j;
+                blockProcessOnDevice(process, i, -1);
                 return;
             }
         }
     }
 }
 
-void SSILoop() {
-    while (TRUE) {
-        unsigned int payload;
-        unsigned int sender = SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
-        unsigned int ret = SSIRequest((pcb_t *)sender, (ssi_payload_t *)payload);
-        if (ret != -1)
-            SYSCALL(SENDMESSAGE, (unsigned int)sender, ret, 0);
-    }
-}
-
-unsigned int ssi_new_process(ssi_create_process_t *p_info, pcb_t* parent) {
-    pcb_t* child = allocPcb();
-    child->p_pid = currPid++;
-    child->p_time = 0;
-    child->p_supportStruct = p_info->support;
-    saveState(&(child->p_s), p_info->state);
-    insertChild(parent, child);
-    insertProcQ(&Ready_Queue, child);
-    processCount++;
-    return (unsigned int)child;
-}
-
-void ssi_terminate_process(pcb_t* proc) {
-    if (proc != NULL) {
-        while (!emptyChild(proc)) {
-            ssi_terminate_process(removeChild(proc));
+void ssi_terminate_process(pcb_t* process) {
+    
+    if(process){
+        while(!emptyChild(process))   
+        {
+            ssi_terminate_process(removeChild(process));
         }
     }
+
+    if (outProcQ(&ready_queue, process) != NULL ||
+        outProcQ(&blockedForRecv, process) != NULL ||
+        outProcQ(&blockedForTransm, process) != NULL ||
+        outProcQ(&blockedForDisk, process) != NULL ||
+        outProcQ(&blockedForFlash, process) != NULL ||
+        outProcQ(&blockedForEthernet, process) != NULL ||
+        outProcQ(&blockedForPrinter, process) != NULL ||
+        outProcQ(&blockedForClock, process) != NULL) {
+        softBlockCount--;
+    }
+
+    outChild(process);
+    freePcb(process);
     processCount--;
-    if (outProcQ(&Locked_terminal_recv, proc) != NULL ||
-        outProcQ(&Locked_terminal_transm, proc) != NULL ||
-        outProcQ(&Locked_disk, proc) != NULL ||
-        outProcQ(&Locked_flash, proc) != NULL ||
-        outProcQ(&Locked_ethernet, proc) != NULL ||
-        outProcQ(&Locked_printer, proc) != NULL ||
-        outProcQ(&Locked_pseudo_clock, proc) != NULL) {
-            softBlockCount--;
+}
+
+int handle_request(pcb_t* process, ssi_payload_t *payload) {
+    int ssiResponse = 0;
+    if (payload->service_code == CREATEPROCESS) {
+
+        ssi_create_process_t *process_info = (ssi_create_process_t *)payload->arg;
+        pcb_t* child = allocPcb();
+        if (child == NULL) {
+            ssiResponse = NOPROC;
+        } else {
+            child->p_pid = currPid++;
+            child->p_time = 0;
+            child->p_supportStruct = process_info->support;
+            child->p_s = *process_info->state;
+            insertChild(process, child);
+            insertProcQ(&ready_queue, child);
+            processCount++;
+            ssiResponse = (unsigned int)child;
+        }
+
+    } else if (payload->service_code == TERMPROCESS) {
+
+        if (payload->arg == NULL) {
+            ssi_terminate_process(process);
+            ssiResponse = NOSSIRESPONSE;
+        } else {
+            ssi_terminate_process((pcb_t *)payload->arg);
+            ssiResponse = 0;
+        }
+
+    } else if (payload->service_code == DOIO) {
+
+        ssi_do_io_t *io = (ssi_do_io_t *)payload->arg;
+        softBlockCount++;
+        addrToDevice((memaddr)io->commandAddr, process);
+        *(io->commandAddr) = io->commandValue;
+        ssiResponse = NOSSIRESPONSE;
+
+    } else if (payload->service_code == GETTIME) {
+
+        ssiResponse = (int)process->p_time;
+
+    } else if (payload->service_code == CLOCKWAIT) {
+
+        insertProcQ(&blockedForClock, process);
+        softBlockCount++;
+        ssiResponse = NOSSIRESPONSE;
+
+    } else if (payload->service_code == GETSUPPORTPTR) {
+
+        ssiResponse = (int)process->p_supportStruct;
+
+    } else if (payload->service_code == GETPROCESSID) {
+
+        if (payload->arg == NULL) {
+            ssiResponse = process->p_pid;
+        } else {
+            ssiResponse = process->p_parent->p_pid;
+        }
+
+    } else {
+
+        ssi_terminate_process(process);
+        ssiResponse = MSGNOGOOD;
+
     }
-    outChild(proc);
-    freePcb(proc);
+
+    return ssiResponse;
 }
 
-void ssi_clockwait(pcb_t *sender) {
-    softBlockCount++;
-    insertProcQ(&Locked_pseudo_clock, sender);
-}
-
-int ssi_getprocessid(pcb_t *sender, void *arg) {
-    return (arg == NULL ? sender->p_pid : sender->p_parent->p_pid);
-}
-
-void ssi_doio(pcb_t *sender, ssi_do_io_t *doio) {
-    softBlockCount++;
-    addrToDevice((memaddr)doio->commandAddr, sender);
-    *(doio->commandAddr) = doio->commandValue;
-}
-
-unsigned int SSIRequest(pcb_t* sender, ssi_payload_t *payload) {
-    unsigned int ret = 0;
-    switch(payload->service_code) {
-        case CREATEPROCESS:
-            ret = (emptyProcQ(&pcbFree_h) ? NOPROC : (unsigned int) ssi_new_process((ssi_create_process_PTR)payload->arg, sender));
-            break;
-        case TERMPROCESS:
-            if (payload->arg == NULL) {
-                ssi_terminate_process(sender);
-                ret = -1;
-            } else {
-                ssi_terminate_process(payload->arg);
-                ret = 0;
-            }
-            break;
-        case DOIO:
-            ssi_doio(sender, payload->arg);
-            ret = -1;
-            break;
-        case GETTIME:
-            ret = (unsigned int)sender->p_time;
-            break;
-        case CLOCKWAIT:
-            ssi_clockwait(sender);
-            ret = -1;
-            break;
-        case GETSUPPORTPTR:
-            ret = (unsigned int)sender->p_supportStruct;
-            break;
-        case GETPROCESSID:
-            ret = (unsigned int)ssi_getprocessid(sender, payload->arg);
-            break;
-        default:
-            ssi_terminate_process(sender);
-            ret = MSGNOGOOD;
-            break;
+void SSI_entry_point() {
+    while (1) {
+        unsigned int payload;
+        unsigned int sender = SYSCALL(RECEIVEMESSAGE, ANYMESSAGE, (unsigned int)(&payload), 0);
+        int ssiResponse = handle_request((pcb_t *)sender, (ssi_payload_t *)payload);
+        if (ssiResponse != NOSSIRESPONSE)
+            SYSCALL(SENDMESSAGE, (unsigned int)sender, ssiResponse, 0);
     }
-    return ret;
 }

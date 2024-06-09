@@ -22,43 +22,28 @@ Bus Error (as expected): Access non-existent memory
 p8 ok
 p5a prevTods
 check p8 root and leaf
-Bus Error (as expected): Access non-existent memory
+memory management trap
 p8root prevTods
-p5a prevTods
+Correct Support Structure Address
 child1 prevTods
 child2 prevTods
-Bus Error (as expected): Access non-existent memory
+Address Error (as expected): non-kuseg access w/KU=1
 leaf process (1) prevTods
 leaf process (2) prevTods
 leaf process (3) prevTods
 leaf process (4) prevTods
-p5a prevTods
-Bus Error (as expected): Access non-existent memory
-p5a prevTods
-Bus Error (as expected): Access non-existent memory
-p5a prevTods
-Bus Error (as expected): Access non-existent memory
+p5sys enter
+High level SYS call from kernel mode process
+p5 ok
 p8root prevTods
-p5a prevTods
 child1 prevTods
 child2 prevTods
-Bus Error (as expected): Access non-existent memory
 leaf process (1) prevTods
 leaf process (2) prevTods
 leaf process (3) prevTods
 leaf process (4) prevTods
-p5a prevTods
-Bus Error (as expected): Access non-existent memory
-p5a prevTods
-Bus Error (as expected): Access non-existent memory
-p5a prevTods
 p9 prevTods
-Bus Error (as expected): Access non-existent memory
 p10 prevTods
-p5a prevTods
 p9 and p10 ok
-Bus Error (as expected): Access non-existent memory
-ERROR: all process child should be dead!
-p5a prevTods
 A towel, it says, is about the most massively useful thing an interstellar hitchhiker can have.
-B
+System halted 
