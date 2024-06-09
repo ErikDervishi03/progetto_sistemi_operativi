@@ -198,4 +198,6 @@
 
 #define NOSSIRESPONSE -1
 
+#define NDEV 6
+
 #endif

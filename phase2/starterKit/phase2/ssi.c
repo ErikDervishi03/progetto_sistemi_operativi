@@ -3,68 +3,67 @@
 #include "headers/pcb.h"
 #include <umps3/umps/const.h>
 
-void blockProcessOnDevice(pcb_t* process, int line, int term) {
-    outProcQ(&ready_queue, process);
-    if (line == IL_DISK) {
-        insertProcQ(&blockedForDisk, process);
-    } else if (line == IL_FLASH) {
-        insertProcQ(&blockedForFlash, process);
-    } else if (line == IL_ETHERNET) {
-        insertProcQ(&blockedForEthernet, process);
-    } else if (line == IL_PRINTER) {
-        insertProcQ(&blockedForPrinter, process);
-    } else if (line == IL_TERMINAL) {
-        if (term > 0) {
-            insertProcQ(&blockedForTransm, process);
-        } else {
-            insertProcQ(&blockedForRecv, process);
-        }
-    }
-}
 
 void addrToDevice(memaddr command_address, pcb_t *process) {
     for (int j = 0; j < N_DEV_PER_IL; j++) {
-        termreg_t *base_address = (termreg_t *)DEV_REG_ADDR(7, j);
+        termreg_t *base_address = (termreg_t *)DEV_REG_ADDR(IL_TERMINAL, j);
         if (command_address == (memaddr)&(base_address->recv_command)) {
             process->dev_no = j;
-            blockProcessOnDevice(process, 7, 0);
+            outProcQ(&ready_queue, process);
+            insertProcQ(&blockedForRecv, process);
             return;
         } else if (command_address == (memaddr)&(base_address->transm_command)) {
             process->dev_no = j;
-            blockProcessOnDevice(process, 7, 1);
+            outProcQ(&ready_queue, process);
+            insertProcQ(&blockedForTransm, process);
             return;
         }
     }
-    for (int i = 3; i < 7; i++) {
+
+    for (int i = DEV_IL_START; i < 7; i++) {
         for (int j = 0; j < N_DEV_PER_IL; j++) {
             dtpreg_t *base_address = (dtpreg_t *)DEV_REG_ADDR(i, j);
             if (command_address == (memaddr)&(base_address->command)) {
                 process->dev_no = j;
-                blockProcessOnDevice(process, i, -1);
+                outProcQ(&ready_queue, process);
+                insertProcQ(&blockedForDevice[EXT_IL_INDEX(i)], process);
                 return;
             }
         }
     }
 }
 
-void ssi_terminate_process(pcb_t* process) {
-    
-    if(process){
-        while(!emptyChild(process))   
-        {
-            ssi_terminate_process(removeChild(process));
+static int processWaitingDevice(pcb_t * process){
+
+    int result = 0;
+
+    for (int i = 0 ; i < NDEV; i ++){
+        pcb_t * unblocked = outProcQ(&blockedForDevice[i], process);
+
+        if(unblocked){
+            result = 1;
         }
+    } 
+
+    return result;
+
+} 
+
+void ssi_terminate_process(pcb_t* process) {
+
+    while(!emptyChild(process))   
+    {
+        ssi_terminate_process(removeChild(process));
     }
+    
 
     if (outProcQ(&ready_queue, process) != NULL ||
-        outProcQ(&blockedForRecv, process) != NULL ||
-        outProcQ(&blockedForTransm, process) != NULL ||
-        outProcQ(&blockedForDisk, process) != NULL ||
-        outProcQ(&blockedForFlash, process) != NULL ||
-        outProcQ(&blockedForEthernet, process) != NULL ||
-        outProcQ(&blockedForPrinter, process) != NULL ||
-        outProcQ(&blockedForClock, process) != NULL) {
+        outProcQ(&blockedForClock, process) != NULL ||
+        processWaitingDevice(process)
+        ) {
+
         softBlockCount--;
+
     }
 
     outChild(process);

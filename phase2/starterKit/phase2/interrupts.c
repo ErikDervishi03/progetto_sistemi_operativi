@@ -1,124 +1,115 @@
 #include "dep.h"
 
-static pcb_t *unblockProcessByDeviceNumber(int device_number, struct list_head *list) {
-    pcb_t* tmp;
-    list_for_each_entry(tmp, list, p_list) {
-        if (tmp->dev_no == device_number) {
-            return outProcQ(list, tmp);
+pcb_t *releaseProcessByDeviceNumber(int dev_num, struct list_head *proc_list) {
+    pcb_t* temp_proc;
+    int i = 0;
+    list_for_each_entry(temp_proc, proc_list, p_list) {
+        if (i == dev_num) {
+            return outProcQ(proc_list, temp_proc);
         }
+
+        i++;
     }
     return NULL;
 }
 
-static void handleTerminalInterrupt(int device_number, unsigned int *device_status, pcb_t **unblocked_pcb) {
-    termreg_t *device_register = (termreg_t *)DEV_REG_ADDR(IL_TERMINAL, device_number);
-    if (((device_register->transm_status) & 0x000000FF) == 5) {
-        *device_status = device_register->transm_status;
-        device_register->transm_command = ACK;
-        *unblocked_pcb = unblockProcessByDeviceNumber(device_number, &blockedForTransm);
-    } else {
-        *device_status = device_register->recv_status;
-        device_register->recv_command = ACK;
-        *unblocked_pcb = unblockProcessByDeviceNumber(device_number, &blockedForRecv);
-    }
-}
+void handleNonTimer(int line_num, int cause, state_t *exc_state) {
+    devregarea_t *dev_reg_area = (devregarea_t *)BUS_REG_RAM_BASE;
+    unsigned int intr_devices_bitmap = dev_reg_area->interrupt_dev[line_num - DEV_IL_START];
+    unsigned int dev_status;
+    unsigned int dev_num;
 
-static void handleNonTerminalInterrupt(int line, int device_number, unsigned int *device_status, pcb_t **unblocked_pcb) {
-    dtpreg_t *device_register = (dtpreg_t *)DEV_REG_ADDR(line, device_number);
-    *device_status = device_register->status;
-    device_register->command = ACK;
-
-    struct list_head *list = NULL;
-
-    if (line == IL_DISK) {
-        list = &blockedForDisk;
-    } else if (line == IL_FLASH) {
-        list = &blockedForFlash;
-    } else if (line == IL_ETHERNET) {
-        list = &blockedForEthernet;
-    } else if (line == IL_PRINTER) {
-        list = &blockedForPrinter;
-    }
-
-    if (list) {
-        *unblocked_pcb = unblockProcessByDeviceNumber(device_number, list);
-    }
-}
-
-static void deviceInterruptHandler(int line, int cause, state_t *exception_state) {
-    devregarea_t *device_register_area = (devregarea_t *)BUS_REG_RAM_BASE;
-    unsigned int interrupting_devices_bitmap = device_register_area->interrupt_dev[line - 3];
-    unsigned int device_status;
-    unsigned int device_number;
-
-    if (interrupting_devices_bitmap & DEV7ON) device_number = 7;
-    else if (interrupting_devices_bitmap & DEV6ON) device_number = 6;
-    else if (interrupting_devices_bitmap & DEV5ON) device_number = 5;
-    else if (interrupting_devices_bitmap & DEV4ON) device_number = 4;
-    else if (interrupting_devices_bitmap & DEV3ON) device_number = 3;
-    else if (interrupting_devices_bitmap & DEV2ON) device_number = 2;
-    else if (interrupting_devices_bitmap & DEV1ON) device_number = 1;
-    else if (interrupting_devices_bitmap & DEV0ON) device_number = 0;
+    if (intr_devices_bitmap & DEV7ON) dev_num = 7;
+    else if (intr_devices_bitmap & DEV6ON) dev_num = 6;
+    else if (intr_devices_bitmap & DEV5ON) dev_num = 5;
+    else if (intr_devices_bitmap & DEV4ON) dev_num = 4;
+    else if (intr_devices_bitmap & DEV3ON) dev_num = 3;
+    else if (intr_devices_bitmap & DEV2ON) dev_num = 2;
+    else if (intr_devices_bitmap & DEV1ON) dev_num = 1;
+    else if (intr_devices_bitmap & DEV0ON) dev_num = 0;
     else return;
 
-    pcb_t* unblocked_pcb = NULL;
+    pcb_t* unblocked_proc = NULL;
 
-    if (line == IL_TERMINAL) {
-        handleTerminalInterrupt(device_number, &device_status, &unblocked_pcb);
+    if (line_num == IL_TERMINAL) {
+        termreg_t *dev_reg = (termreg_t *)DEV_REG_ADDR(IL_TERMINAL, dev_num);
+        if (((dev_reg->transm_status) & 0x000000FF) == 5) {
+            dev_status = dev_reg->transm_status;
+            dev_reg->transm_command = ACK;
+            unblocked_proc = releaseProcessByDeviceNumber(dev_num, &blockedForTransm);
+        } else {
+            dev_status = dev_reg->recv_status;
+            dev_reg->recv_command = ACK;
+            unblocked_proc = releaseProcessByDeviceNumber(dev_num, &blockedForRecv);
+        }
     } else {
-        handleNonTerminalInterrupt(line, device_number, &device_status, &unblocked_pcb);
+        dtpreg_t *dev_reg = (dtpreg_t *)DEV_REG_ADDR(line_num, dev_num);
+        dev_status = dev_reg->status;
+        dev_reg->command = ACK;
+
+        struct list_head *proc_list;
+
+        if ((proc_list = &blockedForDevice[EXT_IL_INDEX(line_num)])) {
+            unblocked_proc = releaseProcessByDeviceNumber(dev_num, proc_list);
+        }
     }
 
-    if (unblocked_pcb) {
-        unblocked_pcb->p_s.reg_v0 = device_status;
-        sendMessage(ssi_pcb, unblocked_pcb, (memaddr)(device_status));
-        insertProcQ(&ready_queue, unblocked_pcb); 
+    if (unblocked_proc) {
+        unblocked_proc->p_s.reg_v0 = dev_status;
+        sendMessage(ssi_pcb, unblocked_proc, (memaddr)(dev_status));
+        insertProcQ(&ready_queue, unblocked_proc);
         softBlockCount--;
     }
 
     if (current_process) 
-        LDST(exception_state);
+        LDST(exc_state);
     else 
         scheduler();
 }
 
-static void localTimerInterruptHandler(state_t *exception_state) {
+void handleLocalTimerInterrupt(state_t *exc_state) {
     setTIMER(-1);
     getDeltaTime(current_process);
-    saveState(&(current_process->p_s), exception_state);
+    saveState(&(current_process->p_s), exc_state);
     insertProcQ(&ready_queue, current_process);
     scheduler();
 }
 
-static void pseudoClockInterruptHandler(state_t* exception_state) {
+void handlePseudoClockInterrupt(state_t* exc_state) {
     LDIT(PSECOND);
-    pcb_t *unblocked_pcb;
-    while ((unblocked_pcb = removeProcQ(&blockedForClock)) != NULL) {
-        sendMessage(ssi_pcb, unblocked_pcb, 0);
-        insertProcQ(&ready_queue, unblocked_pcb);
+    pcb_t *unblocked_proc;
+    while ((unblocked_proc = removeProcQ(&blockedForClock)) != NULL) {
+        sendMessage(ssi_pcb, unblocked_proc, 0);
+        insertProcQ(&ready_queue, unblocked_proc);
         softBlockCount--;
     }
 
     if (current_process) 
-        LDST(exception_state);
+        LDST(exc_state);
     else 
         scheduler();
 }
 
-void interruptHandler(int cause, state_t *exception_state) {
-    if (CAUSE_IP_GET(cause, IL_CPUTIMER)) {
-        localTimerInterruptHandler(exception_state);
-    } else if (CAUSE_IP_GET(cause, IL_TIMER)) {
-        pseudoClockInterruptHandler(exception_state);
-    } else if (CAUSE_IP_GET(cause, IL_DISK)) {
-        deviceInterruptHandler(IL_DISK, cause, exception_state);
-    } else if (CAUSE_IP_GET(cause, IL_FLASH)) {
-        deviceInterruptHandler(IL_FLASH, cause, exception_state);
-    } else if (CAUSE_IP_GET(cause, IL_ETHERNET)) {
-        deviceInterruptHandler(IL_ETHERNET, cause, exception_state);
-    } else if (CAUSE_IP_GET(cause, IL_PRINTER)) {
-        deviceInterruptHandler(IL_PRINTER, cause, exception_state);
-    } else if (CAUSE_IP_GET(cause, IL_TERMINAL)) {
-        deviceInterruptHandler(IL_TERMINAL, cause, exception_state);
+int getHighestPriorityNTint(int cause){
+  for (int line = DEV_IL_START; line < N_INTERRUPT_LINES; line++){
+    if (CAUSE_IP_GET(cause, line)){
+      return line;
     }
+  }
+  return -1;
+}
+
+void interruptHandler(int cause, state_t *exc_state) {
+    if (CAUSE_IP_GET(cause, IL_CPUTIMER)) {
+        handleLocalTimerInterrupt(exc_state);
+    } else if (CAUSE_IP_GET(cause, IL_TIMER)) {
+        handlePseudoClockInterrupt(exc_state);
+    } else{
+        int line = getHighestPriorityNTint(cause);
+
+        if(line != -1)
+            handleNonTimer(line, cause, exc_state);
+    }
+
+   
 }

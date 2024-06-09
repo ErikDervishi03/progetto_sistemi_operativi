@@ -16,13 +16,22 @@ extern int processCount, softBlockCount, currPid;
 extern cpu_t prevTod;
 
 extern struct list_head ready_queue;
-extern struct list_head blockedForDisk;
-extern struct list_head blockedForFlash;
-extern struct list_head blockedForRecv;
-extern struct list_head blockedForTransm;
-extern struct list_head blockedForEthernet;
-extern struct list_head blockedForPrinter;
 extern struct list_head blockedForClock;
+
+extern struct list_head blockedForDevice[NDEV];
+/*
+
+  element 0 : struct list_head blockedForDisk;
+  element 1 : struct list_head blockedForFlash;
+  element 2 : struct list_head blockedForEthernet;
+  element 3 : struct list_head blockedForPrinter;
+  element 4 : struct list_head blockedForRecv;
+  element 5 : struct list_head blockedForTransm;
+
+*/
+
+#define blockedForRecv blockedForDevice[4]
+#define blockedForTransm blockedForDevice[5]
 
 extern pcb_t *current_process;
 

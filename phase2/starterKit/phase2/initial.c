@@ -1,3 +1,4 @@
+#include "const.h"
 #include "dep.h"
 #include <umps3/umps/const.h>
 
@@ -29,13 +30,10 @@ void uTLB_RefillHandler() {
 extern void test();
 
 LIST_HEAD(ready_queue);
-LIST_HEAD(blockedForDisk);
-LIST_HEAD(blockedForFlash);
-LIST_HEAD(blockedForRecv);
-LIST_HEAD(blockedForTransm);
-LIST_HEAD(blockedForEthernet);
-LIST_HEAD(blockedForPrinter);
 LIST_HEAD(blockedForClock);
+
+
+struct list_head blockedForDevice[NDEV];
 
 int processCount, softBlockCount, currPid;
 cpu_t prevTod;
@@ -57,15 +55,10 @@ int main(int argc, char const *argv[]) {
     processCount = 0;
     softBlockCount = 0;
     currPid = 3;
-
-    mkEmptyProcQ(&ready_queue);
-    mkEmptyProcQ(&blockedForDisk);
-    mkEmptyProcQ(&blockedForFlash);
-    mkEmptyProcQ(&blockedForRecv);
-    mkEmptyProcQ(&blockedForTransm);
-    mkEmptyProcQ(&blockedForEthernet);
-    mkEmptyProcQ(&blockedForPrinter);
-    mkEmptyProcQ(&blockedForClock);
+    
+    for(int i = 0; i < NDEV; i++){
+        INIT_LIST_HEAD(&blockedForDevice[i]);
+    }
 
     LDIT(PSECOND);
 
