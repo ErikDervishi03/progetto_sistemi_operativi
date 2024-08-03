@@ -29,9 +29,9 @@ LDFLAGS = -G 0 -nostdlib -T $(UMPS3_DATA_DIR)/umpscore.ldscript
 VPATH = $(UMPS3_DATA_DIR)
 
 # project phases division 
-PHASE1 = ./phase1/msg.o ./phase1/pcb.o  
-PHASE2 = ./phase2/exceptions.o ./phase2/initial.o ./phase2/interrupts.o ./phase2/scheduler.o ./phase2/ssi.o ./phase2/timers.o  
-PHASE3 = ./phase3/initProc.o ./phase3/sst.o ./phase3/sysSupport.o ./phase3/vmSupport.o  
+PHASE1 = ../phase2/starterKit/src/msg.o ../phase2/starterKit/src/pcb.o   
+PHASE2 = ../phase2/starterKit/src/exceptions.o ../phase2/starterKit/src/initial.o ../phase2/starterKit/src/interrupts.o ../phase2/starterKit/src/scheduler.o ../phase2/starterKit/src/ssi.o   
+PHASE3 = ./initProc.o ./sst.o ./sysSupport.o ./vmSupport.o  
 
 .PHONY : all clean
 

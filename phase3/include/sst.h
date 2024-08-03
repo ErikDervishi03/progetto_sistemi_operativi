@@ -4,10 +4,10 @@
 #include "../../headers/const.h"
 #include "../../headers/types.h"
 #include "../../headers/listx.h"
-#include "../../phase1/headers/pcb.h"
-#include "../../phase1/headers/msg.h"
-#include "../../phase2/include/initial.h"
-#include "../../phase3/include/initProc.h"
+#include "../../phase2/starterKit/src/msg.c"
+#include "../../phase2/starterKit/src/pcb.c"
+#include "../../phase2/starterKit/src/initial.c"
+#include "./initProc.h"
 #include <umps/libumps.h>
 #include <stdlib.h>
 
