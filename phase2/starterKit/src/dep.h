@@ -7,8 +7,8 @@
 #include <umps3/umps/arch.h>
 #include <umps3/umps/cp0.h>
 #include "const.h"
-#include "headers/pcb.h"
-#include "headers/msg.h"
+#include "./headers/pcb.h"
+#include "./headers/msg.h"
 #include "debug.h"
 
 extern int processCount, softBlockCount, currPid;

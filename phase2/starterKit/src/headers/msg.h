@@ -1,9 +1,9 @@
 #ifndef MSG_H_INCLUDED
 #define MSG_H_INCLUDED
 
-#include "../../headers/const.h"
-#include "../../headers/types.h"
-#include "../../headers/listx.h"
+#include "../../../../headers/const.h"
+#include "../../../../headers/types.h"
+#include "../../../../headers/listx.h"
 
 void initMsgs();
 void freeMsg(msg_t *m);

@@ -1,8 +1,8 @@
 #ifndef INITPROC
 
-#include "../../phase2/starterKit/headers/const.h"
-#include "../../phase2/starterKit/headers/listx.h"
-#include "../../phase2/starterKit/headers/types.h"
+#include "../../headers/const.h"
+#include "../../headers/listx.h"
+#include "../../headers/types.h"
 #include "../../phase2/starterKit/src/msg.c"
 #include "../../phase2/starterKit/src/pcb.c"
 #include "../../phase2/starterKit/src/exceptions.c"
