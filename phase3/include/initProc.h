@@ -1,19 +1,8 @@
 #ifndef INITPROC
 
-#include "../../headers/const.h"
-#include "../../headers/listx.h"
-#include "../../headers/types.h"
-#include "../../phase2/starterKit/src/msg.c"
-#include "../../phase2/starterKit/src/pcb.c"
-#include "../../phase2/starterKit/src/exceptions.c"
-#include "../../phase2/starterKit/src/dep.h"
 #include "./sst.h"
 #include "./sysSupport.h"
 #include "./vmSupport.h"
-#include <umps/arch.h>
-#include <umps/const.h>
-#include <umps/cp0.h>
-#include <umps/libumps.h>
 
 #define TERM0ADDR 0x10000254
 #define TERMSTATMASK 0xFF

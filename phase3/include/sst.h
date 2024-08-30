@@ -1,9 +1,6 @@
 #ifndef SST
 #define SST
 
-#include "../../headers/const.h"
-#include "../../headers/types.h"
-#include "../../headers/listx.h"
 #include "../../phase2/starterKit/src/msg.c"
 #include "../../phase2/starterKit/src/pcb.c"
 #include "../../phase2/starterKit/src/initial.c"
