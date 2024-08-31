@@ -11,6 +11,8 @@
 #include "./headers/msg.h"
 #include "debug.h"
 
+#define NDEV 6
+
 extern int processCount, softBlockCount, currPid;
 
 extern cpu_t prevTod;

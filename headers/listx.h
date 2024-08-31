@@ -95,41 +95,41 @@ static inline void INIT_LIST_HEAD(struct list_head *list) {
 }
 
 /*
-    Funzione che inserisce un nuovo elemento (new) tra prev e next
+    Funzione che inserisce un nuovo elemento (new_) tra prev e next
 
-    new: nuovo elemento da inserire
-    prev: elemento che deve precedere new
-    next: elemento che deve seguire new
+    new_: nuovo elemento da inserire
+    prev: elemento che deve precedere new_
+    next: elemento che deve seguire new_
 */
-static inline void __list_add(struct list_head *new, struct list_head *prev, struct list_head *next) {
-    next->prev = new;
-    new->next  = next;
-    new->prev  = prev;
-    prev->next = new;
+static inline void __list_add(struct list_head *new_, struct list_head *prev, struct list_head *next) {
+    next->prev = new_;
+    new_->next  = next;
+    new_->prev  = prev;
+    prev->next = new_;
 }
 
 /*
-    Funzione che inserisce un nuovo elemento (new) in testa alla lista head.
+    Funzione che inserisce un nuovo elemento (new_) in testa alla lista head.
 
-    new: nuovo elemento da inserire
-    head: lista in cui inserire new
+    new_: nuovo elemento da inserire
+    head: lista in cui inserire new_
 
     return: void
 */
-static inline void list_add(struct list_head *new, struct list_head *head) {
-    __list_add(new, head, head->next);
+static inline void list_add(struct list_head *new_, struct list_head *head) {
+    __list_add(new_, head, head->next);
 }
 
 /*
-    Come list_add, ma inserisce l'elemento new in coda
+    Come list_add, ma inserisce l'elemento new_ in coda
 
-    new: nuovo elemento da inserire
-    head: lista in cui inserire new
+    new_: nuovo elemento da inserire
+    head: lista in cui inserire new_
 
     return: void
 */
-static inline void list_add_tail(struct list_head *new, struct list_head *head) {
-    __list_add(new, head->prev, head);
+static inline void list_add_tail(struct list_head *new_, struct list_head *head) {
+    __list_add(new_, head->prev, head);
 }
 
 /*
