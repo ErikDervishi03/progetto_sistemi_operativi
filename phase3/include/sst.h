@@ -5,7 +5,7 @@
 #include "../../phase2/starterKit/src/pcb.c"
 #include "../../phase2/starterKit/src/initial.c"
 #include "./initProc.h"
-#include <umps/libumps.h>
+#include <umps3/umps/libumps.h>
 #include <stdlib.h>
 
 void SST_loop();

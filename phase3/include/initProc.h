@@ -1,6 +1,5 @@
 #ifndef INITPROC
 
-#include "./sst.h"
 #include "./sysSupport.h"
 #include "./vmSupport.h"
 

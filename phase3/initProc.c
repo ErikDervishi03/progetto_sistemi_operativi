@@ -7,7 +7,7 @@
  */
 
 #include "./include/initProc.h"
-#include "../klog.c"
+#include "../phase2/starterKit/klog.c"
 
 support_t ss_array[UPROCMAX];     // array di strutture di supporto
 state_t UProc_state[UPROCMAX];    // array di stati dei processi utente
