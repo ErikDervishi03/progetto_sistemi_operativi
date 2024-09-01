@@ -16,6 +16,8 @@
 #define READY 1
 #define SWAP_POOL_AREA 0x20020000
 
+#define CAUSEINTMASK 0xFD00
+
 extern support_t ss_array[UPROCMAX]; // support struct array
 extern state_t UProc_state[UPROCMAX];
 extern pcb_t *swap_mutex_pcb;
