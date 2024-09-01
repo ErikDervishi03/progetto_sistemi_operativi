@@ -1,11 +1,7 @@
 #ifndef SST
 #define SST
 
-#include "../../phase2/starterKit/src/msg.c"
-#include "../../phase2/starterKit/src/pcb.c"
-#include "../../phase2/starterKit/src/initial.c"
-#include "./initProc.h"
-#include <umps3/umps/libumps.h>
+#include "../../phase2/starterKit/src/dep.h"
 #include <stdlib.h>
 
 void SST_loop();

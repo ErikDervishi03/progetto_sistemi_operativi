@@ -1,9 +1,7 @@
 #ifndef SYSSUPPORT
+#define SYSSUPPORT
 
-#include "../../headers/const.h"
-#include "../../headers/types.h"
-#include "../../headers/listx.h"
-
+#include "../../phase2/starterKit/src/dep.h"
 
 void programTrapExceptionHandler(state_t *exception_state);
 void supSyscallExceptionHandler(state_t *exception_state);

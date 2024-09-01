@@ -1,7 +1,11 @@
 #ifndef INITPROC
+#define INITPROC
 
+#include "../../phase2/starterKit/src/dep.h"
+#include "../../phase3/include/sst.h"
 #include "./sysSupport.h"
 #include "./vmSupport.h"
+
 
 #define TERM0ADDR 0x10000254
 #define TERMSTATMASK 0xFF

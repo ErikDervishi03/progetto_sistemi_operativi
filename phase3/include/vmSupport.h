@@ -1,7 +1,7 @@
 #ifndef VMSUPPORT_H
 #define VMSUPPORT_H
 
-#include "../../phase2/starterKit/src/initial.c"
+#include "../../phase2/starterKit/src/dep.h"
 #include "./initProc.h"
 
 extern pcb_t* current_process;

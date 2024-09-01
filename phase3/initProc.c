@@ -98,9 +98,9 @@ static void initUProc() {
   for (int asid = 1; asid <= UPROCMAX; asid++) {
     // inizializzazione stato
     UProc_state[asid - 1].reg_sp = (memaddr)USERSTACKTOP;
-    UProc_state[asid - 1].pc_epc = (memaddr)UPROCSTARTADDR;
+    UProc_state[asid - 1].pc_epc = (memaddr)UPROCprevTodADDR;
     UProc_state[asid - 1].status = ALLOFF | IEPON | IMON | USERPON | TEBITON;
-    UProc_state[asid - 1].reg_t9 = (memaddr)UPROCSTARTADDR;
+    UProc_state[asid - 1].reg_t9 = (memaddr)UPROCprevTodADDR;
     UProc_state[asid - 1].entry_hi = asid << ASIDSHIFT;
 
     // inizializzazione strutture di supporto SST
@@ -272,7 +272,7 @@ static void initDevProc() {
       dev_state[i].entry_hi = (i - UPROCMAX + 1) << ASIDSHIFT;
     }
 
-    dev_state[i].status = ALLOFF | IEPBITON | CAUSEINTMASK | TEBITON;
+    dev_state[i].status = ALLOFF | TEBITON | CAUSEINTMASK | TEBITON;
 
     if (i < UPROCMAX) {
       terminal_pcbs[i] = create_process(&dev_state[i], &ss_array[i]);
