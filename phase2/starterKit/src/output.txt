@@ -1,4 +1,4 @@
-epedDon't Panic.
+Don't Panic.
 p2 prevToded correctly
 p2 get pid successfully
 p2 is OK
@@ -46,4 +46,4 @@ p9 prevTods
 p10 prevTods
 p9 and p10 ok
 A towel, it says, is about the most massively useful thing an interstellar hitchhiker can have.
-System halted 
+System halted

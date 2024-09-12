@@ -1,0 +1,147 @@
+{
+    "boot": {
+        "core-file": "kernel.core.umps",
+        "load-core-file": true
+    },
+    "bootstrap-rom": "/usr/share/umps3/coreboot.rom.umps",
+    "clock-rate": 1,
+    "devices": {
+        "disk0": {
+            "enabled": false,
+            "file": "/home/giuca/so_project/progetto_sistemi_operativi/phase3/testers/printerTest.c"
+        },
+        "disk1": {
+            "enabled": false,
+            "file": "/home/giuca/so_project/progetto_sistemi_operativi/phase3/testers/terminalTest1.c"
+        },
+        "disk2": {
+            "enabled": false,
+            "file": "/home/giuca/so_project/progetto_sistemi_operativi/phase3/testers/terminalTest2.c"
+        },
+        "disk3": {
+            "enabled": false,
+            "file": "/home/giuca/so_project/progetto_sistemi_operativi/phase3/testers/terminalTest3.c"
+        },
+        "disk4": {
+            "enabled": false,
+            "file": "/home/giuca/so_project/progetto_sistemi_operativi/phase3/testers/terminalTest4.c"
+        },
+        "disk5": {
+            "enabled": false,
+            "file": "/home/giuca/so_project/progetto_sistemi_operativi/phase3/testers/todTest.c"
+        },
+        "disk6": {
+            "enabled": false,
+            "file": "/home/giuca/so_project/progetto_sistemi_operativi/phase3/testers/fibEight.c"
+        },
+        "disk7": {
+            "enabled": false,
+            "file": "/home/giuca/so_project/progetto_sistemi_operativi/phase3/testers/fibEleven.c"
+        },
+        "flash0": {
+            "enabled": true,
+            "file": "testers/todTest.c"
+        },
+        "flash1": {
+            "enabled": true,
+            "file": "testers/terminalTest1.c"
+        },
+        "flash2": {
+            "enabled": true,
+            "file": "testers/terminalTest2.c"
+        },
+        "flash3": {
+            "enabled": true,
+            "file": "testers/terminalTest3.c"
+        },
+        "flash4": {
+            "enabled": true,
+            "file": "testers/terminalTest4.c"
+        },
+        "flash5": {
+            "enabled": true,
+            "file": "testers/fibEight.c"
+        },
+        "flash6": {
+            "enabled": true,
+            "file": "testers/fibEleven.c"
+        },
+        "flash7": {
+            "enabled": true,
+            "file": "testers/printerTest.c"
+        },
+        "printer0": {
+            "enabled": true,
+            "file": "printer0.umps"
+        },
+        "printer1": {
+            "enabled": true,
+            "file": "printer1.umps"
+        },
+        "printer2": {
+            "enabled": true,
+            "file": "printer2.umps"
+        },
+        "printer3": {
+            "enabled": true,
+            "file": "printer3.umps"
+        },
+        "printer4": {
+            "enabled": true,
+            "file": "printer4.umps"
+        },
+        "printer5": {
+            "enabled": true,
+            "file": "printer5.umps"
+        },
+        "printer6": {
+            "enabled": true,
+            "file": "printer6.umps"
+        },
+        "printer7": {
+            "enabled": true,
+            "file": "printer7.umps"
+        },
+        "terminal0": {
+            "enabled": true,
+            "file": "term0.umps"
+        },
+        "terminal1": {
+            "enabled": true,
+            "file": "term1.umps"
+        },
+        "terminal2": {
+            "enabled": true,
+            "file": "term2.umps"
+        },
+        "terminal3": {
+            "enabled": true,
+            "file": "term3.umps"
+        },
+        "terminal4": {
+            "enabled": true,
+            "file": "term4.umps"
+        },
+        "terminal5": {
+            "enabled": true,
+            "file": "term5.umps"
+        },
+        "terminal6": {
+            "enabled": true,
+            "file": "term6.umps"
+        },
+        "terminal7": {
+            "enabled": true,
+            "file": "term7.umps"
+        }
+    },
+    "execution-rom": "/usr/share/umps3/exec.rom.umps",
+    "num-processors": 1,
+    "num-ram-frames": 128,
+    "symbol-table": {
+        "asid": 64,
+        "file": "kernel.stab.umps"
+    },
+    "tlb-floor-address": "0x40000000",
+    "tlb-size": 16
+}
