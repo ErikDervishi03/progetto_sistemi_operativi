@@ -1,6 +1,6 @@
 /* Check if TOD is returned correctly */
 
-#include <umps/libumps.h>
+#include <umps3/umps/libumps.h>
 
 #include "h/tconst.h"
 #include "h/print.h"

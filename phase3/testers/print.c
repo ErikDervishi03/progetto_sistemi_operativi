@@ -1,6 +1,6 @@
 /* Function to call print parameterized output to a terminal device */
 
-#include <umps/libumps.h>
+#include <umps3/umps/libumps.h>
 
 #include "h/tconst.h"
 #include "h/types.h"

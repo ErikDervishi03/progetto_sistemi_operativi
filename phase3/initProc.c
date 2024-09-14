@@ -62,6 +62,7 @@ void swapMutex() {
     SYSCALL(SENDMESSAGE, (unsigned int)sender, 0, 0);
     // attesa di rilascio della mutua esclusione
     SYSCALL(RECEIVEMESSAGE, sender, 0, 0);
+    mutex_holder = NULL;
   }
 }
 

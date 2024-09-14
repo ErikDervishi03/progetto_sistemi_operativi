@@ -1,5 +1,6 @@
 #include "include/sysSupport.h"
 #include "include/vmSupport.h"
+#include "testers/h/tconst.h"
 
 /*
  * Funzione che implementa il gestore delle

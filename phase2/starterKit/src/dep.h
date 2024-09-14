@@ -10,6 +10,8 @@
 #include "./headers/pcb.h"
 #include "./headers/msg.h"
 #include "debug.h"
+#include "../../../phase3/include/vmSupport.h"
+
 
 #define NDEV 6
 
@@ -68,5 +70,6 @@ extern void SSI_entry_point();
 extern int sendMessage(pcb_t *sender, pcb_t *dest, unsigned int payload);
 
 extern void getDeltaTime(pcb_t *p) ;
+
 
 #endif

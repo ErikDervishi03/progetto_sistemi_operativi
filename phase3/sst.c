@@ -4,6 +4,7 @@
  */
 
 #include "include/sst.h"
+#include "testers/h/tconst.h"
 
 /**
  * @brief Richiede il puntatore al supporto del processo SST alla SSI (System
@@ -112,7 +113,9 @@ unsigned int SSTRequest(support_t *sup, ssi_payload_t *payload) {
 
   switch (payload->service_code) {
   case GET_TOD:
-    ret = getTOD();
+    unsigned int tmp;
+    STCK(tmp);
+    ret=tmp; 
     break;
 
   case TERMINATE:
