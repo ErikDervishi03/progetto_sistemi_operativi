@@ -2,13 +2,11 @@
 #include "include/vmSupport.h"
 #include "testers/h/tconst.h"
 
-/*
- * Gestore delle eccezioni di tipo "program trap" a livello utente,
- * che non riguardano le system call.
- */
+
+ // Gestore delle eccezioni di tipo "program trap" a livello utente, che non riguardano le system call.
 void handleUserProgramTrap(state_t *exception_state) {
   if (current_process == mutex_holder) {
-    // Rilascia il mutex se il processo corrente è il detentore
+    // Rilascia il mutex se il processo corrente lo ha al momeento
     SYSCALL(SENDMESSAGE, (unsigned int)swap_mutex_process, 0, 0);
   }
 
@@ -16,7 +14,7 @@ void handleUserProgramTrap(state_t *exception_state) {
       .service_code = TERMPROCESS,
       .arg = NULL,
   };
-  // Invia un messaggio al PCB per terminare il processo corrente
+  // Invia un messaggio al SSI per terminare il processo corrente
   SYSCALL(SENDMESSAGE, (unsigned int)ssi_pcb, (unsigned int)(&terminate_payload), 0);
   SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, 0, 0);
 }

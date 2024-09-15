@@ -1,6 +1,5 @@
 #include "const.h"
 #include "dep.h"
-#include "../../../phase3/include/vmSupport.h"
 #include <umps3/umps/const.h>
 
 void memcpy(void *dest, void *src, unsigned int n)  
@@ -21,8 +20,6 @@ void getDeltaTime(pcb_t *p) {
     p->p_time += (currTod - prevTod);
     prevTod = currTod;
 }
-
-extern void test();
 
 LIST_HEAD(ready_queue);  // coda dei processi "ready"
 LIST_HEAD(blockedForClock); // coda dei processi bloccati per clock

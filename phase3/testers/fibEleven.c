@@ -1,6 +1,6 @@
 /*	Test of a CPU intensive recusive job */
 
-#include <umps3/umps/libumps.h>
+#include <umps/libumps.h>
 
 #include "h/tconst.h"
 #include "h/print.h"
@@ -32,3 +32,4 @@ void main() {
 	SYSCALL(SENDMSG, PARENT, (unsigned int)&terminate_payload, 0);
 	SYSCALL(RECEIVEMSG, 0, 0, 0);
 }
+

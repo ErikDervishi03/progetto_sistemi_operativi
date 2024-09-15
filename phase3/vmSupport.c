@@ -32,7 +32,7 @@ static int getVictimPageIndex() {
   return index = (index + 1) % POOLSIZE;
 }
 
-// Funzione per aggiornare la TLB con una nuova voce
+// Funzione per aggiornare la TLB dopo che è stata modificata la Page Table (per garantire consistenza)
 static void updateTLBEntry(pteEntry_t page_entry) {
   // Imposto il registro ENTRYHI con il valore entryHI dalla voce della swap pool
   setENTRYHI(page_entry.pte_entryHI);
@@ -46,6 +46,7 @@ static void updateTLBEntry(pteEntry_t page_entry) {
 
     // Scrivo la voce corrente nella TLB all'indice specificato dal registro ENTRYHI
     TLBWI();
+
   }
 }
 
@@ -64,6 +65,8 @@ static int performIOOnBackingStore(int page_number, int asid, memaddr address, i
   dtpreg_t *device_register = (dtpreg_t *)DEV_REG_ADDR(IL_FLASH, asid - 1);
   device_register->data0 = address;
 
+
+  // dalle spec: COMMAND field with the device block number (high order three bytes) and the command to read (or write) in the lower order byte
   unsigned int command_value = write ? FLASHWRITE | (page_number << 8) : FLASHREAD | (page_number << 8);
   unsigned int status;
 
@@ -99,7 +102,7 @@ static void terminateProcess() {
   SYSCALL(RECEIVEMESSAGE, (unsigned int)ssi_pcb, 0, 0);
 }
 
-// Funzione principale del pager per gestire le eccezioni di pagina
+// Funzione principale del pager per gestire i page fault
 void pager() {
   // Ottengo la struttura di supporto del processo
   support_t *support_struct;
